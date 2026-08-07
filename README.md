@@ -20,9 +20,7 @@ Privacy policy URL for Google branding:
 
 ## Google OAuth setup
 
-This build does not contain a client secret and does not hard-code a Google OAuth Client ID.
-
-Open the test site → **Settings** → **Google Progress Sync — TEST LAB** and paste your existing Google OAuth **Web Client ID**. The Client ID is public application identification and is stored only in this test build's isolated sync-metadata database.
+This build does not contain a client secret. The supplied public Google OAuth **Web Client ID** is preconfigured in `js/sync-config.js` and is not editable from the UI.
 
 For a Google OAuth Web Client, the authorized JavaScript origin is the origin, not the repository path:
 
@@ -73,11 +71,11 @@ A different bank hash is not overwritten.
 
 1. Open the test site and import 2–3 forms.
 2. Make recognizable progress: answers, flags, strikethroughs, stem highlights, explanation highlights, notes, and a completed block/form.
-3. Go to Settings → Google Progress Sync — TEST LAB.
+3. Open the top-level **Progress Sync** tab.
 4. Click **Validate Local Progress**. Confirm Round-trip: PASS and inspect the counts.
-5. Save your Web Client ID and connect Google.
+5. Connect Google.
 6. Confirm the account shown is the intended Gmail and status becomes Synced.
-7. Open the same test site on another device, import the same form file(s), paste the same Web Client ID, connect the same Gmail, and sync.
+7. Open the same test site on another device, import the same form file(s), connect the same Gmail, and sync.
 8. Compare answers, highlights, flags, notes, results, attempts, and Qbank data.
 9. Test independent edits on different questions/devices.
 10. Only after the test build survives those cases should the sync code be considered for production `exam-simulator2`.
@@ -92,4 +90,13 @@ Settings includes **Restore Last Pre-Sync Checkpoint**. It is blocked while an e
 - The Google OAuth Web Client ID is preconfigured in `js/sync-config.js`; there is no Client ID field or save control in the UI.
 - Connected state shows the authorized Google account, sync status, last successful sync, **Sync Now**, and **Disconnect**.
 - The Connect button appears only while disconnected; expired authorization shows **Reconnect Google** instead.
-- PWA/service-worker build identifier: `STEP-PROGRESS-TEST-2`.
+- PWA/service-worker build identifier: `STEP-PROGRESS-TEST-3`.
+
+## TEST-3 recovery-direction fix
+
+- Explicit **Disconnect** now freezes the existing Drive snapshot as an independent recovery copy.
+- Deletes/resets performed while explicitly disconnected do **not** create cloud tombstones.
+- On reconnect, missing local progress is restored from Drive while positive local changes are still merged bidirectionally.
+- If the device is merely **offline** while Sync remains enabled, intentional deletes still create tombstones and propagate after connectivity returns.
+- Reconnect clears stale unsynchronized deletion tombstones from older TEST builds, preventing a prior disconnected local delete from erasing the Drive backup.
+- PWA/service-worker build identifier: `STEP-PROGRESS-TEST-3`.

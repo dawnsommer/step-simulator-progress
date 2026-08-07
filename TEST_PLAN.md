@@ -94,3 +94,15 @@ Do this only after keeping a known-good TEST backup/checkpoint.
 2. Use **Update App / Clear Cache** in the TEST build.
 3. Expected: only `/step-simulator-progress/` service worker and `step-simulator-progress-*` caches are affected.
 4. Production `exam-simulator2` data and service-worker scope remain untouched.
+
+
+## T. Explicit disconnect preserves Drive as recovery backup
+
+1. Sync a form containing recognizable answers/highlights to Drive.
+2. Click **Disconnect**.
+3. Delete that form's local progress while Google Sync is disconnected.
+4. Reconnect the same Google account.
+5. Expected: Drive progress is restored locally; the local deletion is **not** uploaded as a cloud deletion.
+6. Confirm highlights, flags, notes, attempts, and completion state return.
+
+Control case: while Sync remains enabled, take the device offline, intentionally delete progress, then reconnect the network. Expected: that intentional deletion can propagate via its tombstone.

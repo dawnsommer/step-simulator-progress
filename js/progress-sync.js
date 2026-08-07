@@ -15,6 +15,13 @@
   async function recordProgressMutation(detail){
     if(window.__STEP_SYNC_APPLYING_REMOTE) return;
     const name=String(detail?.filename||''), op=String(detail?.operation||'write');
+    // Recovery invariant: once the user explicitly Disconnects Google Sync, the Drive
+    // snapshot becomes an independent backup. Local deletes/resets performed during
+    // that disconnected period MUST NOT create cloud tombstones on a later reconnect.
+    // (A device that is merely offline still has syncEnabled=true, so intentional
+    // deletes made while offline continue to propagate when connectivity returns.)
+    const enabled=await R.meta.get('syncEnabled',false);
+    if(!enabled) return;
     const tombs=await R.meta.get('localTombstones',{forms:{},qbank:null}) || {forms:{},qbank:null}; if(!tombs.forms||typeof tombs.forms!=='object')tombs.forms={};
     const fm=name.match(/^(.+)_progress_save\.json$/i);
     if(fm){
@@ -89,8 +96,35 @@
     return {merged,validation,uploaded};
   }
   async function syncNow(opts={}){ if(running) return running; running=syncCore(opts).catch(async e=>{await handleError(e);throw e;}).finally(()=>{running=null;}); return running; }
-  async function connect(){ setStatus('Syncing…','Connecting Google account…'); try{ const acct=await A.connect({forceConsent:false}); await R.meta.set('syncEnabled',true); uiState.account=acct.emailAddress||''; await syncNow({reason:'successful Google connection',interactive:false}); }catch(e){await handleError(e);throw e;} }
-  async function disconnect(){ A.disconnect(); await R.meta.set('syncEnabled',false); setStatus('Disconnected','Google sync is disabled on this browser. Local simulator progress and Drive data were not deleted.',{account:'',lastError:''}); }
+  async function connect(){
+    setStatus('Syncing…','Connecting Google account…');
+    try{
+      // If this browser was explicitly disconnected, discard any stale local deletion
+      // intent (including tombstones produced by older TEST builds). Positive local
+      // progress still participates in the normal bidirectional three-way merge, but
+      // absence of a local progress file is treated as recoverable from Drive.
+      const wasEnabled=await R.meta.get('syncEnabled',false);
+      if(!wasEnabled){
+        await R.meta.set('localTombstones',{forms:{},qbank:null});
+        await R.meta.set('reconnectRecoveryMode',true);
+      }
+      const acct=await A.connect({forceConsent:false});
+      await R.meta.set('syncEnabled',true);
+      uiState.account=acct.emailAddress||'';
+      await syncNow({reason:wasEnabled?'successful Google connection':'reconnect recovery + bidirectional merge',interactive:false});
+      await R.meta.set('reconnectRecoveryMode',false);
+    }catch(e){await handleError(e);throw e;}
+  }
+  async function disconnect(){
+    A.disconnect();
+    await R.meta.set('syncEnabled',false);
+    // Explicit Disconnect freezes the Drive snapshot as a backup. Any unsynchronized
+    // deletion tombstones are dropped so deleting/resetting progress while disconnected
+    // cannot erase the cloud copy when the user later reconnects.
+    await R.meta.set('localTombstones',{forms:{},qbank:null});
+    await R.meta.set('disconnectedAt',U.iso());
+    setStatus('Disconnected','Google sync is disabled on this browser. Drive remains an independent recovery copy; local deletes made while disconnected will be restored on reconnect.',{account:'',lastError:''});
+  }
 
   function installStyles(){
     if(document.getElementById('stepProgressSyncTestStyle')) return;
@@ -164,6 +198,7 @@
               <div class="sync-protection"><div class="sync-protection-icon">↔</div><div><b>Bidirectional merge</b><span>Independent form/question changes are merged instead of blindly overwritten.</span></div></div>
               <div class="sync-protection"><div class="sync-protection-icon">↶</div><div><b>Pre-sync recovery point</b><span>A local checkpoint is made before applying incoming cloud progress.</span></div></div>
               <div class="sync-protection"><div class="sync-protection-icon">#</div><div><b>Form version guard</b><span>Progress is matched using form identity plus bank hash.</span></div></div>
+              <div class="sync-protection"><div class="sync-protection-icon">B</div><div><b>Disconnect freezes backup</b><span>Delete/reset actions made after explicit Disconnect stay local; reconnect can restore the Drive copy.</span></div></div>
             </div>
           </section>
           <section class="sync-card sync-diagnostics">

@@ -3,7 +3,7 @@
   const ROOT = window.StepProgressSync = window.StepProgressSync || {};
   const C = ROOT.config = Object.freeze({
     APP_NAME: 'step-simulator-progress',
-    BUILD: 'STEP-PROGRESS-TEST-2',
+    BUILD: 'STEP-PROGRESS-TEST-3',
     GOOGLE_CLIENT_ID: '640686051076-f6feje0ff4q0g2jo6i50c9sgqo6qk1q6.apps.googleusercontent.com',
     CLOUD_TYPE: 'step-simulator-progress-test-sync',
     SCHEMA_VERSION: 1,
