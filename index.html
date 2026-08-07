@@ -5058,7 +5058,7 @@ document.addEventListener('click', function(e){
   /* step-simulator-progress TEST: narrow storage bridge.
      This exposes only durable progress operations; form source files/assets stay private to the simulator. */
   window.StepExamSyncBridge = Object.freeze({
-    build: 'STEP-PROGRESS-TEST-1',
+    build: 'STEP-PROGRESS-TEST-2',
     async ensureReady(){
       if(!dataDirHandle){ await restoreLastDataFolder(); }
       if(!dataDirHandle) throw new Error('Simulator library storage is not available.');
@@ -10047,11 +10047,11 @@ try{
 </script>
 
 <!-- step-simulator-progress TEST sync laboratory -->
-<script src="./js/sync-config.js?v=STEP-PROGRESS-TEST-1"></script>
-<script src="./js/sync-merge.js?v=STEP-PROGRESS-TEST-1"></script>
-<script src="./js/sync-storage.js?v=STEP-PROGRESS-TEST-1"></script>
-<script src="./js/google-auth.js?v=STEP-PROGRESS-TEST-1"></script>
-<script src="./js/progress-sync.js?v=STEP-PROGRESS-TEST-1"></script>
+<script src="./js/sync-config.js?v=STEP-PROGRESS-TEST-2"></script>
+<script src="./js/sync-merge.js?v=STEP-PROGRESS-TEST-2"></script>
+<script src="./js/sync-storage.js?v=STEP-PROGRESS-TEST-2"></script>
+<script src="./js/google-auth.js?v=STEP-PROGRESS-TEST-2"></script>
+<script src="./js/progress-sync.js?v=STEP-PROGRESS-TEST-2"></script>
 
 </body>
 </html>

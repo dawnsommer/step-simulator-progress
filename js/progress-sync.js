@@ -92,39 +92,125 @@
   async function connect(){ setStatus('Syncing…','Connecting Google account…'); try{ const acct=await A.connect({forceConsent:false}); await R.meta.set('syncEnabled',true); uiState.account=acct.emailAddress||''; await syncNow({reason:'successful Google connection',interactive:false}); }catch(e){await handleError(e);throw e;} }
   async function disconnect(){ A.disconnect(); await R.meta.set('syncEnabled',false); setStatus('Disconnected','Google sync is disabled on this browser. Local simulator progress and Drive data were not deleted.',{account:'',lastError:''}); }
 
-  function installStyles(){ if(document.getElementById('stepProgressSyncTestStyle'))return; const st=document.createElement('style');st.id='stepProgressSyncTestStyle';st.textContent=`
-    #stepProgressTestBadge{position:fixed;right:10px;bottom:10px;z-index:99999;background:#7f1d1d;color:#fff;border:1px solid #450a0a;border-radius:999px;padding:5px 9px;font:800 10px/1.2 Arial,sans-serif;pointer-events:none;opacity:.9;letter-spacing:.04em}
-    #stepSyncLabCard .step-sync-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}#stepSyncLabCard .step-sync-wide{grid-column:1/-1}#stepSyncLabCard input{width:100%;box-sizing:border-box}#stepSyncLabCard .step-sync-status{border:1px solid #d7e5ee;border-radius:12px;padding:10px;background:#f8fbfd;line-height:1.4}#stepSyncLabCard .step-sync-buttons{display:flex;gap:8px;flex-wrap:wrap}#stepSyncLabCard .step-sync-metrics{font-size:12px;color:#4e687a;white-space:pre-wrap}#stepSyncLabCard .step-sync-warning{border:1px solid #e7b5b5;background:#fff4f4;color:#7f1d1d;border-radius:12px;padding:9px;font-size:12px;font-weight:700}@media(max-width:700px){#stepSyncLabCard .step-sync-grid{grid-template-columns:1fr}}
-  `;document.head.appendChild(st); const badge=document.createElement('div');badge.id='stepProgressTestBadge';badge.textContent='SYNC TEST • step-simulator-progress';document.body.appendChild(badge); }
-  async function ensureCard(){
-    const panel=document.getElementById('settingsPanel'); if(!panel||document.getElementById('stepSyncLabCard')) return;
-    const grid=panel.querySelector('.settings-grid')||panel; const card=document.createElement('section');card.id='stepSyncLabCard';card.className='settings-card wide';card.innerHTML=`
-      <h3>Google Progress Sync — TEST LAB</h3><p>Isolated from <b>exam-simulator2</b>. It uses separate browser databases, cache keys, metadata, and <code>${C.DRIVE_FILE}</code>.</p>
-      <div class="step-sync-warning">TEST BUILD. Do not use this as your production study simulator yet.</div>
-      <div class="step-sync-grid">
-        <div class="step-sync-wide"><label for="stepSyncClientId"><b>Google OAuth Web Client ID</b></label><input id="stepSyncClientId" type="text" placeholder="123...apps.googleusercontent.com" autocomplete="off"><small>Public client ID only. No client secret is used.</small></div>
-        <div class="step-sync-wide step-sync-status"><b id="stepSyncStatusText">${uiState.status}</b><div id="stepSyncDetailText"></div><div id="stepSyncAccountText"></div><div id="stepSyncLastText"></div></div>
-        <div class="step-sync-wide step-sync-buttons"><button type="button" class="secondary" data-step-sync-action="save-client">Save Client ID</button><button type="button" class="primary" data-step-sync-action="connect">Connect Google Account</button><button type="button" class="secondary" data-step-sync-action="sync">Sync Now</button><button type="button" class="secondary" data-step-sync-action="disconnect">Disconnect</button></div>
-        <div class="step-sync-wide step-sync-buttons"><button type="button" class="secondary" data-step-sync-action="validate">Validate Local Progress</button><button type="button" class="secondary" data-step-sync-action="restore">Restore Last Pre-Sync Checkpoint</button></div>
-        <div id="stepSyncMetrics" class="step-sync-wide step-sync-metrics">Diagnostics not run yet.</div>
-        <div class="step-sync-wide"><a href="./privacy.html" target="_blank" rel="noopener">Privacy Policy</a> · Build <code>${C.BUILD}</code></div>
-      </div>`; grid.appendChild(card); const id=await A.getClientId(); const inp=document.getElementById('stepSyncClientId'); if(inp)inp.value=id; renderUi();
+  function installStyles(){
+    if(document.getElementById('stepProgressSyncTestStyle')) return;
+    const st=document.createElement('style'); st.id='stepProgressSyncTestStyle'; st.textContent=`
+      #stepProgressTestBadge{position:fixed;right:10px;bottom:10px;z-index:99999;background:#7f1d1d;color:#fff;border:1px solid #450a0a;border-radius:999px;padding:5px 9px;font:800 10px/1.2 Arial,sans-serif;pointer-events:none;opacity:.88;letter-spacing:.04em}
+      #progressSyncTab{position:relative}#progressSyncTab .sync-tab-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-left:7px;background:#7d92a2;box-shadow:0 0 0 3px rgba(125,146,162,.14)}#progressSyncTab.sync-connected .sync-tab-dot{background:#34c78b;box-shadow:0 0 0 3px rgba(52,199,139,.16)}#progressSyncTab.sync-attention .sync-tab-dot{background:#f0ad45;box-shadow:0 0 0 3px rgba(240,173,69,.16)}
+      #progressSyncPanel{--sync-ink:#0b1f2d;--sync-muted:#637888;--sync-line:#dbe6ed;--sync-soft:#f5f9fb;--sync-blue:#1976d2;--sync-green:#159468;--sync-warn:#b87312;--sync-red:#a83b3b}
+      #progressSyncPanel .sync-hero{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:22px 24px;margin-bottom:18px}
+      #progressSyncPanel .sync-hero h2{margin:2px 0 5px;color:var(--sync-ink);font-size:25px}#progressSyncPanel .sync-hero p{margin:0;color:var(--sync-muted);font-size:13px;max-width:720px;line-height:1.55}
+      #progressSyncPanel .sync-status-pill{display:inline-flex;align-items:center;gap:8px;white-space:nowrap;border:1px solid var(--sync-line);background:#fff;border-radius:999px;padding:8px 12px;font-size:12px;font-weight:900;color:var(--sync-ink)}#progressSyncPanel .sync-status-pill i{width:9px;height:9px;border-radius:50%;background:#899ba8;display:block}#progressSyncPanel .sync-status-pill.good i{background:var(--sync-green)}#progressSyncPanel .sync-status-pill.busy i{background:var(--sync-blue);animation:stepSyncPulse 1s infinite alternate}#progressSyncPanel .sync-status-pill.warn i{background:#e2a032}#progressSyncPanel .sync-status-pill.bad i{background:var(--sync-red)}
+      @keyframes stepSyncPulse{from{opacity:.35}to{opacity:1}}
+      #progressSyncPanel .sync-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(280px,.65fr);gap:18px}
+      #progressSyncPanel .sync-card{background:#fff;border:1px solid var(--sync-line);border-radius:22px;padding:20px;box-shadow:0 12px 30px rgba(24,54,84,.07)}#progressSyncPanel .sync-card h3{margin:0 0 5px;color:var(--sync-ink);font-size:16px}#progressSyncPanel .sync-card>p{margin:0;color:var(--sync-muted);font-size:12px;line-height:1.5}
+      #progressSyncPanel .sync-account{display:flex;align-items:center;gap:14px;margin-top:18px;padding:15px;border:1px solid #d7ebe3;background:#f5fbf8;border-radius:18px}#progressSyncPanel .sync-avatar{width:42px;height:42px;flex:0 0 42px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#153b54;color:#fff;font-size:16px;font-weight:950;text-transform:uppercase}#progressSyncPanel .sync-account-copy{min-width:0;flex:1}#progressSyncPanel .sync-account-label{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:var(--sync-green)}#progressSyncPanel .sync-account-email{font-size:14px;font-weight:900;color:var(--sync-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}#progressSyncPanel .sync-account-sub{font-size:11px;color:var(--sync-muted);margin-top:3px}
+      #progressSyncPanel .sync-disconnected{margin-top:18px;padding:18px;border:1px dashed #cbdbe5;background:var(--sync-soft);border-radius:18px}#progressSyncPanel .sync-disconnected b{display:block;color:var(--sync-ink);margin-bottom:4px}#progressSyncPanel .sync-disconnected span{font-size:12px;color:var(--sync-muted);line-height:1.5}
+      #progressSyncPanel .sync-detail{margin-top:13px;border-radius:14px;padding:11px 13px;background:var(--sync-soft);color:#425c6d;font-size:12px;line-height:1.5;min-height:18px}#progressSyncPanel .sync-detail.bad{background:#fff5f5;color:#883838;border:1px solid #f0d4d4}#progressSyncPanel .sync-detail.warn{background:#fff9ed;color:#7f5a16;border:1px solid #f0dfb8}
+      #progressSyncPanel .sync-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:15px}#progressSyncPanel .sync-actions button{min-width:120px}
+      #progressSyncPanel .sync-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}#progressSyncPanel .sync-meta{background:var(--sync-soft);border:1px solid #e3edf2;border-radius:14px;padding:11px}#progressSyncPanel .sync-meta span{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.055em;font-weight:900;color:#79909f}#progressSyncPanel .sync-meta b{display:block;margin-top:4px;font-size:12px;color:var(--sync-ink);word-break:break-word}
+      #progressSyncPanel .sync-protection-list{display:flex;flex-direction:column;gap:10px;margin-top:17px}#progressSyncPanel .sync-protection{display:grid;grid-template-columns:31px 1fr;gap:10px;align-items:start;padding:11px;border:1px solid #e2ebf0;border-radius:15px;background:#fbfdfe}#progressSyncPanel .sync-protection-icon{width:31px;height:31px;border-radius:10px;background:#eaf3f8;color:#1f607e;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:950}#progressSyncPanel .sync-protection b{display:block;font-size:12px;color:var(--sync-ink)}#progressSyncPanel .sync-protection span{display:block;font-size:11px;color:var(--sync-muted);margin-top:2px;line-height:1.4}
+      #progressSyncPanel .sync-diagnostics{grid-column:1/-1}#progressSyncPanel .sync-diagnostics-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}#progressSyncPanel .sync-diagnostics-actions{display:flex;gap:8px;flex-wrap:wrap}#stepSyncMetrics{margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:9px}#stepSyncMetrics .sync-metric{background:var(--sync-soft);border:1px solid #e0ebf1;border-radius:14px;padding:11px}#stepSyncMetrics .sync-metric span{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:#78909e;font-weight:850}#stepSyncMetrics .sync-metric b{display:block;margin-top:4px;font-size:18px;color:var(--sync-ink)}#stepSyncMetrics .sync-metric.pass b{color:var(--sync-green);font-size:13px;margin-top:7px}
+      #progressSyncPanel .sync-footer{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-top:14px;color:#728797;font-size:11px;flex-wrap:wrap}#progressSyncPanel .sync-footer a{font-weight:850;color:#315f7d;text-decoration:none}#progressSyncPanel .sync-test-note{color:#8a3e3e;font-weight:850}
+      @media(max-width:900px){#progressSyncPanel .sync-layout{grid-template-columns:1fr}#progressSyncPanel .sync-hero{flex-direction:column}#progressSyncPanel .sync-status-pill{align-self:flex-start}}@media(max-width:600px){#progressSyncPanel .sync-hero,#progressSyncPanel .sync-card{padding:16px}#progressSyncPanel .sync-meta-grid{grid-template-columns:1fr}#progressSyncPanel .sync-actions button{flex:1 1 140px}}
+    `; document.head.appendChild(st);
+    if(!document.getElementById('stepProgressTestBadge')){ const badge=document.createElement('div'); badge.id='stepProgressTestBadge'; badge.textContent='SYNC TEST • step-simulator-progress'; document.body.appendChild(badge); }
   }
-  async function renderUi(){
-    const st=document.getElementById('stepSyncStatusText'),dt=document.getElementById('stepSyncDetailText'),ac=document.getElementById('stepSyncAccountText'),ls=document.getElementById('stepSyncLastText');
-    if(st)st.textContent=uiState.status; if(dt)dt.textContent=uiState.detail||''; if(ac)ac.textContent=uiState.account?`Account: ${uiState.account}`:''; if(ls)ls.textContent=uiState.lastSync?`Last sync: ${new Date(uiState.lastSync).toLocaleString()}`:'';
+  function statusTone(){
+    if(uiState.status==='Synced') return 'good';
+    if(uiState.status==='Syncing…') return 'busy';
+    if(uiState.status==='Reconnect Google'||uiState.status==='Local changes pending'||uiState.status==='Offline — saved locally') return 'warn';
+    if(String(uiState.status).startsWith('Sync failed')) return 'bad';
+    return '';
   }
-  async function runValidate(){ const r=await S.validateLocal(), m=document.getElementById('stepSyncMetrics'); if(m)m.textContent=`Loaded forms: ${r.loadedForms}\nProgress-bearing forms: ${r.stats.forms}\nAttempts: ${r.stats.attempts}\nQuestion states: ${r.stats.questions}\nAnswered: ${r.stats.answered}\nMarked: ${r.stats.marked}\nStem highlights: ${r.stats.stemHighlights}\nExplanation highlights: ${r.stats.expHighlights}\nStrikethrough entries: ${r.stats.struck}\nNotes blocks: ${r.stats.notes}\nQbank tests: ${r.stats.qbankTests}\nSnapshot size: ${(r.bytes/1024).toFixed(1)} KB\nRound-trip: PASS\nDevice ID: ${r.deviceId}`; return r; }
+  function isConnectedView(){ return !!uiState.account && uiState.status!=='Reconnect Google' && uiState.status!=='Disconnected'; }
+  function controlHtml(){
+    if(uiState.status==='Syncing…') return `<button type="button" class="primary" disabled>Syncing…</button>`;
+    if(uiState.status==='Reconnect Google') return `<button type="button" class="primary" data-step-sync-action="sync">Reconnect Google</button><button type="button" class="secondary" data-step-sync-action="disconnect">Disconnect</button>`;
+    if(isConnectedView()) return `<button type="button" class="primary" data-step-sync-action="sync">Sync Now</button><button type="button" class="secondary" data-step-sync-action="disconnect">Disconnect</button>`;
+    return `<button type="button" class="primary" data-step-sync-action="connect">Connect Google Account</button>`;
+  }
+  function accountHtml(){
+    if(!isConnectedView()) return `<div class="sync-disconnected"><b>Progress is stored locally on this device.</b><span>Connect Google to add optional hidden cross-device progress synchronization and recovery. The simulator continues to use its normal local storage first.</span></div>`;
+    const email=uiState.account||'Google account'; const initial=(email.trim()[0]||'G').toUpperCase();
+    return `<div class="sync-account"><div class="sync-avatar">${initial}</div><div class="sync-account-copy"><div class="sync-account-label">Connected account</div><div class="sync-account-email">${email.replace(/[&<>\"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[m]))}</div><div class="sync-account-sub">Google Drive appDataFolder • hidden progress file</div></div></div>`;
+  }
+  function ensureSyncSurface(){
+    const side=document.querySelector('.modern-sidebar'), settingsTab=document.getElementById('settingsTab');
+    if(side && !document.getElementById('progressSyncTab')){
+      const btn=document.createElement('button'); btn.id='progressSyncTab'; btn.className='menu-tab'; btn.type='button'; btn.innerHTML='Progress Sync <span class="sync-tab-dot" aria-hidden="true"></span>';
+      if(settingsTab) side.insertBefore(btn,settingsTab); else side.appendChild(btn);
+    }
+    const main=document.querySelector('.modern-main'), settingsPanel=document.getElementById('settingsPanel');
+    if(main && !document.getElementById('progressSyncPanel')){
+      const panel=document.createElement('section'); panel.id='progressSyncPanel'; panel.className='mode-panel';
+      panel.innerHTML=`
+        <div class="sync-hero glass-panel">
+          <div><div class="panel-kicker">Cloud recovery • isolated test</div><h2>Google Progress Sync</h2><p>Local simulator storage stays primary. Google Drive adds an optional hidden synchronization layer for your form progress, attempts, highlights, review state, and Qbank progress.</p></div>
+          <div id="stepSyncStatusPill" class="sync-status-pill"><i></i><span id="stepSyncStatusText">Disconnected</span></div>
+        </div>
+        <div class="sync-layout">
+          <section class="sync-card">
+            <h3>Connection</h3><p>One Google account can stay connected on Mac, iPad, and iPhone at the same time.</p>
+            <div id="stepSyncAccountArea"></div>
+            <div id="stepSyncDetailText" class="sync-detail"></div>
+            <div id="stepSyncActions" class="sync-actions"></div>
+            <div class="sync-meta-grid"><div class="sync-meta"><span>Last successful sync</span><b id="stepSyncLastText">Never</b></div><div class="sync-meta"><span>Drive file</span><b>${C.DRIVE_FILE}</b></div></div>
+          </section>
+          <section class="sync-card">
+            <h3>Protection layers</h3><p>This TEST repository remains isolated from your production simulator.</p>
+            <div class="sync-protection-list">
+              <div class="sync-protection"><div class="sync-protection-icon">L</div><div><b>Local-first</b><span>Answers and highlights save locally before any Drive operation.</span></div></div>
+              <div class="sync-protection"><div class="sync-protection-icon">↔</div><div><b>Bidirectional merge</b><span>Independent form/question changes are merged instead of blindly overwritten.</span></div></div>
+              <div class="sync-protection"><div class="sync-protection-icon">↶</div><div><b>Pre-sync recovery point</b><span>A local checkpoint is made before applying incoming cloud progress.</span></div></div>
+              <div class="sync-protection"><div class="sync-protection-icon">#</div><div><b>Form version guard</b><span>Progress is matched using form identity plus bank hash.</span></div></div>
+            </div>
+          </section>
+          <section class="sync-card sync-diagnostics">
+            <div class="sync-diagnostics-head"><div><h3>Progress diagnostics</h3><p>Validate that answers, attempts, highlights, notes, and Qbank state can be represented by the sync snapshot.</p></div><div class="sync-diagnostics-actions"><button type="button" class="secondary" data-step-sync-action="validate">Validate Local Progress</button><button type="button" class="secondary" data-step-sync-action="restore">Restore Pre-Sync Checkpoint</button></div></div>
+            <div id="stepSyncMetrics"><div class="sync-metric"><span>Status</span><b>Not run</b></div></div>
+            <div class="sync-footer"><span class="sync-test-note">TEST BUILD — production exam-simulator2 remains separate.</span><span><a href="./privacy.html" target="_blank" rel="noopener">Privacy Policy</a> · Build ${C.BUILD}</span></div>
+          </section>
+        </div>`;
+      if(settingsPanel?.parentNode) settingsPanel.parentNode.insertBefore(panel,settingsPanel.nextSibling); else main.appendChild(panel);
+    }
+    renderUi();
+  }
+  function activateSyncTab(){
+    ensureSyncSurface();
+    document.querySelectorAll('.mode-panel.active').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.menu-tab.active').forEach(x=>x.classList.remove('active'));
+    document.getElementById('progressSyncPanel')?.classList.add('active');
+    document.getElementById('progressSyncTab')?.classList.add('active');
+  }
+  function renderUi(){
+    const pill=document.getElementById('stepSyncStatusPill'), st=document.getElementById('stepSyncStatusText'), dt=document.getElementById('stepSyncDetailText'), aa=document.getElementById('stepSyncAccountArea'), acts=document.getElementById('stepSyncActions'), ls=document.getElementById('stepSyncLastText'), tab=document.getElementById('progressSyncTab');
+    if(pill){pill.className='sync-status-pill '+statusTone();}
+    if(st) st.textContent=uiState.status;
+    if(dt){dt.textContent=uiState.detail||'';dt.className='sync-detail '+(statusTone()==='bad'?'bad':statusTone()==='warn'?'warn':'');}
+    if(aa) aa.innerHTML=accountHtml();
+    if(acts) acts.innerHTML=controlHtml();
+    if(ls) ls.textContent=uiState.lastSync?new Date(uiState.lastSync).toLocaleString():'Never';
+    if(tab){tab.classList.toggle('sync-connected',isConnectedView());tab.classList.toggle('sync-attention',statusTone()==='warn'||statusTone()==='bad');}
+  }
+  async function runValidate(){
+    const r=await S.validateLocal(), m=document.getElementById('stepSyncMetrics');
+    if(m){ const items=[['Loaded forms',r.loadedForms],['Progress forms',r.stats.forms],['Attempts',r.stats.attempts],['Question states',r.stats.questions],['Answered',r.stats.answered],['Marked',r.stats.marked],['Stem highlights',r.stats.stemHighlights],['Explanation highlights',r.stats.expHighlights],['Strikethroughs',r.stats.struck],['Notes blocks',r.stats.notes],['Qbank tests',r.stats.qbankTests],['Snapshot',(r.bytes/1024).toFixed(1)+' KB']]; m.innerHTML=items.map(([a,b])=>`<div class="sync-metric"><span>${a}</span><b>${b}</b></div>`).join('')+`<div class="sync-metric pass"><span>Round-trip</span><b>PASS</b></div>`; }
+    return r;
+  }
   async function restore(){ const rt=window.StepExamSyncBridge?.runtime?.(); if(rt?.examVisible) throw new Error('Leave the active exam before restoring a checkpoint.'); if(!confirm('Restore the last automatic pre-sync checkpoint? This changes TEST-build progress only.'))return; await S.restoreCheckpoint(); await markDirty('pre-sync checkpoint restored'); setStatus('Local changes pending','Checkpoint restored locally. Sync when ready.'); await runValidate(); }
   async function handleAction(action){
-    if(action==='save-client'){ const inp=document.getElementById('stepSyncClientId'); await A.setClientId(inp?.value||''); setStatus('Disconnected','OAuth Client ID saved for this TEST build.'); return; }
     if(action==='connect') return await connect();
     if(action==='sync') return await syncNow({reason:'manual Sync Now',interactive:true});
     if(action==='disconnect') return await disconnect();
     if(action==='validate') return await runValidate();
     if(action==='restore') return await restore();
   }
-  document.addEventListener('click',e=>{ const b=e.target?.closest?.('[data-step-sync-action]'); if(!b)return; e.preventDefault(); b.disabled=true; handleAction(b.dataset.stepSyncAction).catch(err=>alert(err.message||String(err))).finally(()=>{b.disabled=false;}); },true);
+  document.addEventListener('click',e=>{
+    const syncTab=e.target?.closest?.('#progressSyncTab'); if(syncTab){e.preventDefault();activateSyncTab();return;}
+    const other=e.target?.closest?.('.menu-tab:not(#progressSyncTab)'); if(other) document.getElementById('progressSyncPanel')?.classList.remove('active');
+    const b=e.target?.closest?.('[data-step-sync-action]'); if(!b)return; e.preventDefault(); b.disabled=true; handleAction(b.dataset.stepSyncAction).catch(err=>alert(err.message||String(err))).finally(()=>{b.disabled=false;});
+  },true);
   window.addEventListener('stepsim:progress-write',e=>{ if(window.__STEP_SYNC_APPLYING_REMOTE)return; recordProgressMutation(e.detail).then(()=>markDirty(`${e.detail?.filename||'progress'} ${e.detail?.operation||'changed'}`)).then(()=>{if(e.detail?.operation==='delete')schedule('progress deletion',1800);}); });
   window.addEventListener('stepsim:catalog-write',()=>{ if(window.__STEP_SYNC_APPLYING_REMOTE)return; markDirty('catalog/result metadata changed'); });
   window.addEventListener('online',()=>{R.meta.get('dirty',false).then(d=>{if(d)schedule('network restored',1000);});});
@@ -136,7 +222,7 @@
   async function boot(){
     installStyles(); document.title='Step Simulator Progress — TEST';
     if('serviceWorker' in navigator){ try{await navigator.serviceWorker.register('./sw.js?v='+encodeURIComponent(C.BUILD),{scope:'./'});}catch(e){console.warn('TEST service worker registration failed',e);} }
-    const mo=new MutationObserver(()=>ensureCard().catch(console.warn)); mo.observe(document.documentElement,{childList:true,subtree:true}); await ensureCard();
+    const mo=new MutationObserver(()=>{ if(!document.getElementById('progressSyncTab') || !document.getElementById('progressSyncPanel')) ensureSyncSurface(); }); mo.observe(document.documentElement,{childList:true,subtree:true}); ensureSyncSurface();
     const enabled=await R.meta.get('syncEnabled',false), acct=await R.meta.get('googleAccount',null), last=await R.meta.get('lastSyncAt',''); uiState.account=acct?.email||''; uiState.lastSync=last||'';
     if(enabled){ if(A.getState().authorized){ setStatus('Local changes pending','Checking Google Drive after reload…'); setTimeout(()=>syncNow({reason:'app startup/reload',interactive:false}).catch(()=>{}),1000); } else setStatus('Reconnect Google','Google sync is enabled, but authorization is not available in this browser session.'); }
     else setStatus('Disconnected','Progress is currently stored locally in this isolated TEST build.');

@@ -14,10 +14,9 @@
     gisPromise=new Promise((resolve,reject)=>{ const old=document.querySelector('script[data-step-sync-gis]'); if(old){old.addEventListener('load',()=>resolve(window.google),{once:true});old.addEventListener('error',()=>reject(new Error('Google Identity Services failed to load.')),{once:true});return;} const s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';s.async=true;s.defer=true;s.dataset.stepSyncGis='1';s.onload=()=>resolve(window.google);s.onerror=()=>reject(new Error('Google Identity Services failed to load.'));document.head.appendChild(s); });
     return gisPromise;
   }
-  async function getClientId(){ return String(await R.meta.get('googleClientId','')||'').trim(); }
-  async function setClientId(id){ id=String(id||'').trim(); if(id && !/\.apps\.googleusercontent\.com$/i.test(id)) throw new Error('This does not look like a Google OAuth Web Client ID.'); await R.meta.set('googleClientId',id); tokenClient=null; tokenClientId=''; return id; }
+  function getClientId(){ return String(C.GOOGLE_CLIENT_ID||'').trim(); }
   async function ensureClient(){
-    const id=await getClientId(); if(!id) throw new Error('Add your Google OAuth Web Client ID in Sync Lab settings first.');
+    const id=getClientId(); if(!id) throw new Error('Google OAuth Web Client ID is not configured in this build.');
     await loadGis();
     if(tokenClient && tokenClientId===id) return tokenClient;
     tokenClientId=id;
@@ -49,5 +48,5 @@
   }
   async function connect(opts={}){ await requestToken({forceConsent:!!opts.forceConsent}); return await validate(); }
   function disconnect(){ clearToken(); }
-  R.auth={DriveHttpError,getState,getClientId,setClientId,requestToken,validate,connect,disconnect,driveFetch,loadGis};
+  R.auth={DriveHttpError,getState,getClientId,requestToken,validate,connect,disconnect,driveFetch,loadGis};
 })();

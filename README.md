@@ -85,3 +85,11 @@ A different bank hash is not overwritten.
 ## Test-only recovery tool
 
 Settings includes **Restore Last Pre-Sync Checkpoint**. It is blocked while an exam is active. It restores only the latest automatic local checkpoint inside the test build and then marks progress dirty so you can decide whether to sync it.
+
+## TEST-2 UI update
+
+- Google Progress Sync now has its own top-level **Progress Sync** tab.
+- The Google OAuth Web Client ID is preconfigured in `js/sync-config.js`; there is no Client ID field or save control in the UI.
+- Connected state shows the authorized Google account, sync status, last successful sync, **Sync Now**, and **Disconnect**.
+- The Connect button appears only while disconnected; expired authorization shows **Reconnect Google** instead.
+- PWA/service-worker build identifier: `STEP-PROGRESS-TEST-2`.
