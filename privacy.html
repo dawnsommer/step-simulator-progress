@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Privacy Policy — step-simulator-progress</title>
+<style>
+body{margin:0;background:#f4f7f9;color:#13232f;font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}main{max-width:820px;margin:40px auto;padding:28px;background:#fff;border:1px solid #d8e3ea;border-radius:18px}h1,h2{color:#071827}code{background:#eef3f6;padding:2px 5px;border-radius:5px}a{color:#005783}.notice{border:1px solid #e5b7b7;background:#fff5f5;color:#7f1d1d;padding:12px;border-radius:12px;font-weight:700}small{color:#5c6d79}</style>
+</head>
+<body><main>
+<h1>Privacy Policy — step-simulator-progress</h1>
+<p class="notice">This is the isolated synchronization test build of Step Exam Simulator. It is intentionally separate from the production <code>exam-simulator2</code> deployment.</p>
+<p><small>Effective date: August 8, 2026</small></p>
+<h2>What the application stores locally</h2>
+<p>The simulator stores imported form files, simulator progress, highlights, answer selections, marks, notes, timing information, results, Qbank progress, and related simulator state in browser-local storage or in a user-selected local DATA folder. Local simulator storage remains the primary runtime data source.</p>
+<h2>Optional Google Progress Sync</h2>
+<p>If you choose to connect a Google Account, the application requests only the Google Drive application-data permission <code>https://www.googleapis.com/auth/drive.appdata</code>. This permission is used only to create, read, update, and recover the application's hidden progress synchronization file in Google Drive's <code>appDataFolder</code>.</p>
+<p>The test build uses the hidden file <code>step-simulator-progress.TEST.progress.sync.json</code>. The file is not placed in the user's visible My Drive.</p>
+<h2>Data sent to Google Drive</h2>
+<p>Google Progress Sync is designed to synchronize durable simulator progress such as answers, marks, strikethroughs, highlights, notes, timing/progress state, attempts, results, suspended progress, Qbank history, and selected result metadata. Imported source form files and simulator image/assets folders are not uploaded by the Progress Sync feature.</p>
+<h2>How Google data is used</h2>
+<p>Google Drive application data is used only to synchronize and recover the user's simulator progress across their own browser installations. The application does not use Google Drive data for advertising, profiling, sale, or unrelated analytics.</p>
+<h2>Servers and sharing</h2>
+<p>This GitHub Pages application has no application backend or proprietary cloud database for progress synchronization. Progress synchronization occurs directly between the user's browser and Google Drive APIs. The application does not sell Google user data or share it with advertisers.</p>
+<h2>OAuth tokens</h2>
+<p>Google OAuth access tokens are short-lived and are kept only in browser session state. They are not written to simulator IndexedDB progress, Google Drive synchronization snapshots, exported simulator files, service-worker caches, or source code. No OAuth client secret is used in the browser application.</p>
+<h2>Disconnecting and deleting data</h2>
+<p>Disconnecting Google Progress Sync on one browser clears that browser's current authorization session and disables automatic sync there. It does not delete local simulator progress and does not revoke access for other devices. It also does not automatically delete the hidden Drive synchronization file.</p>
+<p>Users may delete browser-local simulator data using browser/site-data controls or the simulator's own local progress controls. Google account permissions may be managed from the user's Google Account permissions page. Google Drive app data may also be removed by removing the application's stored data/access through Google account/Drive controls where available.</p>
+<h2>Test-build safeguards</h2>
+<p>This test deployment uses separate IndexedDB database names, local-storage keys, service-worker caches, synchronization metadata, and a separate Google Drive test filename so that experimentation does not intentionally modify the production simulator's browser storage or future production synchronization file.</p>
+<h2>Changes</h2>
+<p>This policy may be updated if the synchronization implementation or data handling changes. The current version will be published at this page.</p>
+<h2>Contact</h2>
+<p>For questions about this application or its data handling, use the developer contact information shown on the application's Google OAuth consent screen or the repository owner's published contact channel.</p>
+<p><a href="./">Return to step-simulator-progress</a></p>
+</main></body></html>

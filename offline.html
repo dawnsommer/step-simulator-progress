@@ -1,0 +1,792 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Step Exam Simulator A22.13 iPad by Bladelord</title></head><body><h1>Offline</h1><p>Step Exam Simulator is offline. Reopen after the app cache finishes updating.</p>
+<style id="v22-3-scope-hopi-explanation-choice-spacing-css">
+/* v22.6/A22.12 terminal scope split.
+   Stem, explanation, and HOPI patient-chart styling are separated so they do not collide. */
+
+/* Explanation panel only: make generated explanation headings visibly bold without touching stems. */
+#examScreen .qbank-body[data-panel-mode="explanation"] .exp-section > h1,
+#examScreen .qbank-body[data-panel-mode="explanation"] .exp-section > h2,
+#examScreen .qbank-body[data-panel-mode="explanation"] .exp-section > h3,
+#examScreen .qbank-body[data-panel-mode="explanation"] .exp-section > h4,
+#examScreen .qbank-body[data-panel-mode="explanation"] .exp-section > h5,
+#examScreen .qbank-body[data-panel-mode="explanation"] .exp-section > h6,
+#examScreen .qbank-body[data-panel-mode="explanation"] .exp-correct > h1,
+#examScreen .qbank-body[data-panel-mode="explanation"] .exp-correct > h2,
+#examScreen .qbank-body[data-panel-mode="explanation"] .exp-correct > h3,
+#examScreen .qbank-body[data-panel-mode="explanation"] .exp-correct > h4,
+#examScreen .qbank-body[data-panel-mode="explanation"] .exp-correct > h5,
+#examScreen .qbank-body[data-panel-mode="explanation"] .exp-correct > h6,
+#examScreen .qbank-body[data-panel-mode="explanation"] .exp-wrong > b,
+#examScreen .qbank-body[data-panel-mode="explanation"] .exp-wrong > strong,
+#examScreen .qbank-body[data-panel-mode="explanation"] .exp-rule > b,
+#examScreen .qbank-body[data-panel-mode="explanation"] .exp-rule > strong,
+#examScreen .qbank-body[data-panel-mode="explanation"] .exp-heading,
+#examScreen .qbank-body[data-panel-mode="explanation"] .explanation-heading{
+  font-family:Arial, Helvetica, sans-serif!important;
+  font-weight:900!important;
+  font-synthesis-weight:auto!important;
+  color:#111!important;
+  text-shadow:0 0 0 currentColor!important;
+}
+#examScreen .qbank-body[data-panel-mode="explanation"] .exp-section > h3,
+#examScreen .qbank-body[data-panel-mode="explanation"] .exp-correct > h3{
+  font-size:16px!important;
+  line-height:1.35!important;
+  margin:0 0 8px 0!important;
+}
+
+/* More breathing room between Q stem and native table-like answer choices only. */
+#examScreen .answers:has(.choice-table-wrap){
+  margin-top:16px!important;
+}
+#examScreen .answers .choice-table-wrap,
+#examScreen .stem + .answers .choice-table-wrap:first-child{
+  margin-top:20px!important;
+}
+
+/* Patient-chart/HOPI stem scope only. Normal stems and explanations are excluded. */
+#examScreen .stem .patient-chart,
+#examScreen .stem .patient-chart *{
+  font-family:"Arial Unicode MS", Arial_for_NBME, Arial, Helvetica, "Lucida Sans Unicode", "Trebuchet MS", sans-serif!important;
+  font-size:16px!important;
+  line-height:1.4!important;
+  font-style:normal!important;
+  color:#111!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+#examScreen .stem .patient-chart{
+  font-weight:400!important;
+  border:0!important;
+  padding:0!important;
+  margin:0 0 10px 0!important;
+  max-width:none!important;
+  white-space:normal!important;
+}
+#examScreen .stem .patient-chart p,
+#examScreen .stem .patient-chart div,
+#examScreen .stem .patient-chart span,
+#examScreen .stem .patient-chart li,
+#examScreen .stem .patient-chart td{
+  font-weight:400!important;
+  text-decoration:none!important;
+}
+#examScreen .stem .patient-chart b,
+#examScreen .stem .patient-chart strong,
+#examScreen .stem .patient-chart .chart-label,
+#examScreen .stem .patient-chart .chart-subheading{
+  font-weight:400!important;
+  text-decoration:none!important;
+}
+#examScreen .stem .patient-chart p{
+  margin:0!important;
+  padding:0!important;
+}
+#examScreen .stem .patient-chart ul,
+#examScreen .stem .patient-chart ol{
+  margin:0 0 8px 22px!important;
+  padding:0!important;
+  font-weight:400!important;
+}
+#examScreen .stem .patient-chart li{
+  margin:0!important;
+  padding:0!important;
+}
+
+/* Classified HOPI subheadings: 700 weight, no underline. */
+#examScreen .stem .patient-chart .hopi-subheading,
+#examScreen .stem .patient-chart b.hopi-subheading,
+#examScreen .stem .patient-chart strong.hopi-subheading,
+#examScreen .stem .patient-chart .chart-label.hopi-subheading,
+#examScreen .stem .patient-chart .chart-subheading.hopi-subheading{
+  font-weight:700!important;
+  text-decoration:none!important;
+  display:inline!important;
+  margin:0!important;
+  padding:0!important;
+}
+
+/* Classified HOPI main headings: 700 weight, underline, block, with empty-line spacing before each heading. */
+#examScreen .stem .patient-chart .hopi-main-heading,
+#examScreen .stem .patient-chart h1.hopi-main-heading,
+#examScreen .stem .patient-chart h2.hopi-main-heading,
+#examScreen .stem .patient-chart h3.hopi-main-heading,
+#examScreen .stem .patient-chart h4.hopi-main-heading,
+#examScreen .stem .patient-chart h5.hopi-main-heading,
+#examScreen .stem .patient-chart h6.hopi-main-heading,
+#examScreen .stem .patient-chart b.hopi-main-heading,
+#examScreen .stem .patient-chart strong.hopi-main-heading,
+#examScreen .stem .patient-chart .chart-label.hopi-main-heading,
+#examScreen .stem .patient-chart .chart-heading.hopi-main-heading,
+#examScreen .stem .patient-chart .chart-main-heading.hopi-main-heading{
+  font-family:"Arial Unicode MS", Arial_for_NBME, Arial, Helvetica, "Lucida Sans Unicode", "Trebuchet MS", sans-serif!important;
+  font-size:16px!important;
+  line-height:1.4!important;
+  font-weight:700!important;
+  text-decoration-line:underline!important;
+  text-decoration-style:solid!important;
+  text-decoration-thickness:1px!important;
+  text-underline-offset:2px!important;
+  display:block!important;
+  margin:18px 0 8px 0!important;
+  padding:0!important;
+  color:#111!important;
+  background:transparent!important;
+  border:0!important;
+}
+#examScreen .stem .patient-chart .hopi-main-heading.hopi-first-main-heading,
+#examScreen .stem .patient-chart .hopi-main-heading:first-child{
+  margin-top:0!important;
+}
+#examScreen .stem .patient-chart .hopi-main-heading:not(.hopi-first-main-heading):not(.hopi-question-label){
+  margin-top:18px!important;
+}
+
+/* Inline Question: label: underline only the label, not the full final question sentence. */
+#examScreen .stem .patient-chart .hopi-question-line{
+  font-weight:400!important;
+  text-decoration:none!important;
+  display:block!important;
+  margin:18px 0 8px 0!important;
+  padding:0!important;
+}
+#examScreen .stem .patient-chart .hopi-question-line.hopi-first-main-heading{
+  margin-top:0!important;
+}
+#examScreen .stem .patient-chart .hopi-main-heading-inline,
+#examScreen .stem .patient-chart .hopi-question-label{
+  font-family:"Arial Unicode MS", Arial_for_NBME, Arial, Helvetica, "Lucida Sans Unicode", "Trebuchet MS", sans-serif!important;
+  font-size:16px!important;
+  line-height:1.4!important;
+  font-weight:700!important;
+  text-decoration-line:underline!important;
+  text-decoration-style:solid!important;
+  text-decoration-thickness:1px!important;
+  text-underline-offset:2px!important;
+  display:inline!important;
+  margin:0!important;
+  padding:0!important;
+  color:#111!important;
+  background:transparent!important;
+}
+
+#examScreen .stem .patient-chart table,
+#examScreen .stem .patient-chart .vitals-table,
+#examScreen .stem .patient-chart .stem-lab-table,
+#examScreen .stem .patient-chart .stem-study-table{
+  font-family:inherit!important;
+  font-size:16px!important;
+  line-height:1.4!important;
+  font-weight:400!important;
+  border-collapse:collapse!important;
+  margin:8px 0 12px 0!important;
+  width:auto!important;
+  max-width:100%!important;
+  background:#fff!important;
+}
+#examScreen .stem .patient-chart th,
+#examScreen .stem .patient-chart td{
+  padding:4px 8px!important;
+  border:1px solid #bfcbd3!important;
+  vertical-align:top!important;
+}
+#examScreen .stem .patient-chart th{
+  font-weight:700!important;
+}
+</style>
+
+
+<script id="v22-3-hopi-normalizer-js">
+(function(){
+  if(window.__STEP_SIM_V223_HOPI_PATCH) return;
+  window.__STEP_SIM_V223_HOPI_PATCH = true;
+  try{
+    var ipad = window.__STEP_SIM_STORAGE_PROFILE === 'ipad-browser-library-primary';
+    window.__STEP_SIM_VERSION = ipad ? 'A22.12' : '22.6';
+    document.title = ipad ? 'Step Exam Simulator A22.13 iPad by Bladelord' : 'Step Exam Simulator v22.6 by Bladelord';
+  }catch(e){}
+
+  var MAIN_HEADINGS = {
+    'patient information':1,
+    'history':1,
+    'physical examination':1,
+    'physical exam':1,
+    'laboratory studies':1,
+    'laboratory study':1,
+    'lab studies':1,
+    'diagnostic studies':1,
+    'diagnostic study':1,
+    'diagnostics':1,
+    'question':1
+  };
+  var SUBHEADINGS = {
+    'reason for visit':1,
+    'chief concern':1,
+    'reason for visit/chief concern':1,
+    'history of present illness':1,
+    'past medical history':1,
+    'medications':1,
+    'allergies':1,
+    'psychosocial history':1,
+    'social history':1,
+    'family history':1,
+    'vaccinations':1,
+    'immunizations':1,
+    'review of systems':1
+  };
+  function norm(s){
+    return String(s||'')
+      .replace(/\u00a0/g,' ')
+      .replace(/\s+/g,' ')
+      .replace(/[:：]\s*$/,'')
+      .trim()
+      .toLowerCase();
+  }
+  function isShortLabelText(s){
+    var t=String(s||'').replace(/\s+/g,' ').trim();
+    return t && t.length <= 80 && !/[?.!][\s\S]+/.test(t.replace(/^Question\s*:/i,''));
+  }
+  function markFirstHeading(chart){
+    try{
+      var heads = Array.prototype.slice.call(chart.querySelectorAll('.hopi-main-heading,.hopi-question-line'));
+      heads.forEach(function(h){h.classList.remove('hopi-first-main-heading');});
+      if(heads[0]) heads[0].classList.add('hopi-first-main-heading');
+    }catch(e){}
+  }
+  function wrapQuestionLabel(el){
+    if(!el || el.dataset.v223QuestionWrapped) return;
+    var txt=(el.textContent||'').replace(/\s+/g,' ').trim();
+    if(!/^Question\s*:/i.test(txt)) return;
+    el.classList.add('hopi-question-line');
+    el.classList.remove('hopi-subheading');
+    if(/^\s*Question\s*:\s*$/i.test(txt)){
+      el.classList.add('hopi-main-heading');
+      el.dataset.v223QuestionWrapped='1';
+      return;
+    }
+    try{
+      var html=el.innerHTML||'';
+      if(!/hopi-question-label/.test(html)){
+        var next=html.replace(/(^|>)(\s*)Question\s*:/i,function(m,p1,p2){
+          return p1+p2+'<span class="hopi-main-heading-inline hopi-question-label">Question:</span>';
+        });
+        if(next!==html) el.innerHTML=next;
+      }
+      el.dataset.v223QuestionWrapped='1';
+    }catch(e){}
+  }
+  function classifyElement(el){
+    if(!el) return;
+    var raw=(el.textContent||'').replace(/\s+/g,' ').trim();
+    if(!raw) return;
+    if(el.classList && el.classList.contains('hopi-question-label')) return;
+    if(/^Question\s*:/i.test(raw)){
+      wrapQuestionLabel(el);
+      return;
+    }
+    /* Prefer the actual label node (b/strong/span/etc) over a wrapper <p>/<div>
+       so margins/underline are applied once and do not duplicate parent + child. */
+    if(el.children && el.children.length) return;
+    if(!isShortLabelText(raw)) return;
+    var n=norm(raw);
+    if(MAIN_HEADINGS[n]){
+      el.classList.add('hopi-main-heading');
+      el.classList.remove('hopi-subheading');
+      return;
+    }
+    if(SUBHEADINGS[n]){
+      el.classList.add('hopi-subheading');
+      return;
+    }
+  }
+  function normalizePatientChartsV223(root){
+    try{
+      Array.prototype.slice.call((root||document).querySelectorAll('#examScreen .stem .patient-chart')).forEach(function(chart){
+        chart.classList.add('patient-chart-v223');
+        var selector='h1,h2,h3,h4,h5,h6,.chart-heading,.chart-main-heading,.chart-label,.chart-subheading,b,strong,p,div,span';
+        Array.prototype.slice.call(chart.querySelectorAll(selector)).forEach(function(el){
+          if(el===chart) return;
+          classifyElement(el);
+        });
+        markFirstHeading(chart);
+      });
+    }catch(e){console.warn('v22.6 HOPI normalizer failed',e);}
+  }
+  window.normalizePatientChartsV223 = normalizePatientChartsV223;
+  try{
+    if(typeof renderQuestion === 'function' && !renderQuestion.__v223PatientChart){
+      var baseRenderQuestionV223 = renderQuestion;
+      renderQuestion = function(){
+        var out = baseRenderQuestionV223.apply(this, arguments);
+        normalizePatientChartsV223(document);
+        return out;
+      };
+      renderQuestion.__v223PatientChart = true;
+    }
+  }catch(e){console.warn('v22.6 renderQuestion HOPI patch failed',e);}
+  try{
+    var mo = new MutationObserver(function(muts){
+      for(var i=0;i<muts.length;i++){
+        var t=muts[i].target;
+        if(t && t.querySelector && (t.matches && (t.matches('#examScreen') || t.matches('.stem') || t.matches('.patient-chart')) || t.querySelector('#examScreen .stem .patient-chart,.patient-chart'))){
+          normalizePatientChartsV223(document);
+          break;
+        }
+      }
+    });
+    mo.observe(document.documentElement,{childList:true,subtree:true});
+  }catch(e){}
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){normalizePatientChartsV223(document);}); else normalizePatientChartsV223(document);
+})();
+</script>
+<script id="v22-3-final-title">
+try{
+  window.__STEP_SIM_VERSION=(window.__STEP_SIM_STORAGE_PROFILE==='ipad-browser-library-primary')?'A22.12':'22.6';
+  document.title=(window.__STEP_SIM_STORAGE_PROFILE==='ipad-browser-library-primary')?'Step Exam Simulator A22.13 iPad by Bladelord':'Step Exam Simulator v22.6 by Bladelord';
+}catch(e){}
+</script>
+
+
+
+<style id="v22-5-status-heading-font-css">
+/* v22.6/A22.12: Question Status heading label only. No row/number/exam/library selectors touched. */
+#examScreen .left-status > .status-title{
+  font-family:"Open Sans", Verdana, sans-serif!important;
+  font-size:13.33px!important;
+  line-height:14.5px!important;
+}
+</style>
+<script id="v22-5-final-title">
+try{
+  window.__STEP_SIM_VERSION=(window.__STEP_SIM_STORAGE_PROFILE==='ipad-browser-library-primary')?'A22.12':'22.6';
+  document.title=(window.__STEP_SIM_STORAGE_PROFILE==='ipad-browser-library-primary')?'Step Exam Simulator A22.13 iPad by Bladelord':'Step Exam Simulator v22.6 by Bladelord';
+}catch(e){}
+</script>
+
+
+<style id="v22-6-answers-minheight-css">
+/* v22.6/A22.12: force the actual exam answer-choice container to reserve at least 270px.
+   This targets the rendered div.answers itself so it does not depend on :has() matching the table wrapper. */
+#examScreen div.answers{
+  min-height:270px!important;
+}
+#examScreen div.answers:has(.choice-table-wrap),
+#examScreen div.answers.choice-table-answers,
+#examScreen div.answers.table-choice-answers{
+  min-height:270px!important;
+  margin-top:38px!important;
+}
+#examScreen div.answers .choice-table-wrap,
+#examScreen .stem + div.answers .choice-table-wrap:first-child{
+  margin-top:28px!important;
+}
+</style>
+<script id="v22-6-final-title">
+try{
+  window.__STEP_SIM_VERSION=(window.__STEP_SIM_STORAGE_PROFILE==='ipad-browser-library-primary')?'A22.12':'22.6';
+  document.title=(window.__STEP_SIM_STORAGE_PROFILE==='ipad-browser-library-primary')?'Step Exam Simulator A22.13 iPad by Bladelord':'Step Exam Simulator v22.6 by Bladelord';
+}catch(e){}
+</script>
+
+
+
+<style id="v22-9-universal-answer-gap-css">
+/* v22.10/A22.12: universal stem-to-answer spacing for all answer-choice boxes.
+   User clarified "answer choice table" meant the whole answer choice box/list, not only structured choiceTable rows.
+   Do not stretch div.answers; keep answer boxes natural height and move the entire answer block down with a non-collapsing spacer. */
+#examScreen .stem{
+  margin-bottom:0!important;
+}
+#examScreen .stem-answer-spacer{
+  display:block!important;
+  height:28px!important;
+  min-height:28px!important;
+  max-height:28px!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  line-height:0!important;
+  font-size:0!important;
+  clear:both!important;
+  background:transparent!important;
+  pointer-events:none!important;
+  flex:0 0 28px!important;
+}
+#examScreen .choice-table-stem-spacer{
+  display:none!important;
+  height:0!important;
+  min-height:0!important;
+  max-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+}
+#examScreen div.answers,
+#examScreen div.answers.choice-table-active,
+#examScreen div.answers.choice-table-answers,
+#examScreen div.answers.table-choice-answers,
+#examScreen div.answers:has(.choice-table-wrap){
+  margin-top:0!important;
+  min-height:0!important;
+  height:auto!important;
+}
+#examScreen div.answers .choice-table-wrap,
+#examScreen div.answers.choice-table-active .choice-table-wrap,
+#examScreen div.answers.choice-table-answers .choice-table-wrap,
+#examScreen div.answers.table-choice-answers .choice-table-wrap,
+#examScreen div.answers:has(.choice-table-wrap) .choice-table-wrap,
+#examScreen .stem + .stem-answer-spacer + div.answers .choice-table-wrap:first-child{
+  margin-top:0!important;
+}
+</style>
+<script id="v22-9-final-title">
+try{
+  window.__STEP_SIM_VERSION=(window.__STEP_SIM_STORAGE_PROFILE==='ipad-browser-library-primary')?'A22.12':'22.9';
+  document.title=(window.__STEP_SIM_STORAGE_PROFILE==='ipad-browser-library-primary')?'Step Exam Simulator A22.13 iPad by Bladelord':'Step Exam Simulator v22.10 by Bladelord';
+}catch(e){}
+</script>
+
+
+
+<style id="v22-13-hopi-invisible-table-borders-css">
+/* v22.13/A22.13: HOPI Physical Examination and Diagnostic Studies tables use invisible borders only.
+   Scoped to patient-chart stems. Normal lab tables outside HOPI and answer-choice tables are untouched. */
+#examScreen .stem .patient-chart table.hopi-invisible-border-table,
+#examScreen .stem .patient-chart .vitals-table.hopi-invisible-border-table,
+#examScreen .stem .patient-chart .stem-study-table.hopi-invisible-border-table{
+  border-color:transparent!important;
+}
+#examScreen .stem .patient-chart table.hopi-invisible-border-table th,
+#examScreen .stem .patient-chart table.hopi-invisible-border-table td,
+#examScreen .stem .patient-chart .vitals-table.hopi-invisible-border-table th,
+#examScreen .stem .patient-chart .vitals-table.hopi-invisible-border-table td,
+#examScreen .stem .patient-chart .stem-study-table.hopi-invisible-border-table th,
+#examScreen .stem .patient-chart .stem-study-table.hopi-invisible-border-table td{
+  border:1px solid transparent!important;
+  border-color:transparent!important;
+}
+</style>
+<script id="v22-13-hopi-invisible-table-borders-js">
+(function(){
+  if(window.__STEP_SIM_V2213_HOPI_TABLE_BORDERS) return;
+  window.__STEP_SIM_V2213_HOPI_TABLE_BORDERS = true;
+  function clean(s){ return String(s||'').replace(/\u00a0/g,' ').replace(/\s+/g,' ').trim(); }
+  function norm(s){ return clean(s).replace(/[:：]\s*$/,'').toLowerCase(); }
+  function sectionFromText(s){
+    var n = norm(s);
+    if(n === 'physical examination' || n === 'physical exam') return 'physical';
+    if(n === 'diagnostic studies' || n === 'diagnostic study' || n === 'diagnostics') return 'diagnostic';
+    if(n === 'patient information' || n === 'history' || n === 'laboratory studies' || n === 'laboratory study' || n === 'lab studies' || n === 'question') return 'other';
+    return '';
+  }
+  function isTableNode(el){
+    return !!(el && el.nodeType === 1 && (el.tagName === 'TABLE' || el.classList.contains('vitals-table') || el.classList.contains('stem-study-table')));
+  }
+  function isHeadingLike(el){
+    if(!el || el.nodeType !== 1) return false;
+    var tag = el.tagName;
+    return /^(H1|H2|H3|H4|H5|H6|B|STRONG|SPAN|DIV|P)$/.test(tag) ||
+      el.classList.contains('hopi-main-heading') || el.classList.contains('chart-heading') || el.classList.contains('chart-main-heading');
+  }
+  function directText(el){
+    if(!el || !el.childNodes) return clean(el && el.textContent);
+    var out = '';
+    Array.prototype.slice.call(el.childNodes).forEach(function(n){
+      if(n.nodeType === 3) out += ' ' + n.nodeValue;
+      else if(n.nodeType === 1 && !/^(TABLE|UL|OL)$/.test(n.tagName)) out += ' ' + (n.textContent || '');
+    });
+    return clean(out);
+  }
+  function inferSectionFromPrevious(tbl){
+    var node = tbl;
+    var hops = 0;
+    while(node && node.parentElement && hops < 20){
+      var p = node.previousElementSibling;
+      while(p){
+        if(isHeadingLike(p)){
+          var sec = sectionFromText(directText(p));
+          if(sec) return sec;
+        }
+        p = p.previousElementSibling;
+      }
+      node = node.parentElement;
+      if(node && node.classList && node.classList.contains('patient-chart')) break;
+      hops++;
+    }
+    return '';
+  }
+  function normalizeHopiInvisibleTableBordersV2213(root){
+    try{
+      Array.prototype.slice.call((root||document).querySelectorAll('#examScreen .stem .patient-chart')).forEach(function(chart){
+        var current = '';
+        Array.prototype.slice.call(chart.querySelectorAll('h1,h2,h3,h4,h5,h6,.hopi-main-heading,.chart-heading,.chart-main-heading,.chart-label,.chart-subheading,b,strong,p,div,span,table,.vitals-table,.stem-study-table')).forEach(function(el){
+          if(el === chart) return;
+          if(el.closest && el.closest('table') && !isTableNode(el)) return;
+          if(isTableNode(el)){
+            var sec = current || inferSectionFromPrevious(el);
+            if(sec === 'physical' || sec === 'diagnostic') el.classList.add('hopi-invisible-border-table');
+            else el.classList.remove('hopi-invisible-border-table');
+            return;
+          }
+          if(isHeadingLike(el)){
+            var t = directText(el);
+            if(t.length <= 120){
+              var next = sectionFromText(t);
+              if(next) current = next;
+            }
+          }
+        });
+      });
+    }catch(e){ console.warn('v22.13 HOPI invisible table border patch failed', e); }
+  }
+  window.normalizeHopiInvisibleTableBordersV2213 = normalizeHopiInvisibleTableBordersV2213;
+  try{
+    if(typeof renderQuestion === 'function' && !renderQuestion.__v2213HopiInvisibleBorders){
+      var baseRenderQuestionV2213 = renderQuestion;
+      renderQuestion = function(){
+        var out = baseRenderQuestionV2213.apply(this, arguments);
+        normalizeHopiInvisibleTableBordersV2213(document);
+        return out;
+      };
+      renderQuestion.__v2213HopiInvisibleBorders = true;
+    }
+  }catch(e){ console.warn('v22.13 renderQuestion HOPI invisible table border patch failed', e); }
+  try{
+    var mo = new MutationObserver(function(muts){
+      for(var i=0;i<muts.length;i++){
+        var t = muts[i].target;
+        if(t && t.querySelector && (t.matches && (t.matches('#examScreen') || t.matches('.stem') || t.matches('.patient-chart')) || t.querySelector('#examScreen .stem .patient-chart'))){
+          normalizeHopiInvisibleTableBordersV2213(document); break;
+        }
+      }
+    });
+    mo.observe(document.documentElement,{childList:true,subtree:true});
+  }catch(e){}
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ normalizeHopiInvisibleTableBordersV2213(document); }); else normalizeHopiInvisibleTableBordersV2213(document);
+  try{
+    var ipad = window.__STEP_SIM_STORAGE_PROFILE === 'ipad-browser-library-primary';
+    window.__STEP_SIM_VERSION = ipad ? 'A22.13' : '22.13';
+    document.title = ipad ? 'Step Exam Simulator A22.13 iPad by Bladelord' : 'Step Exam Simulator v22.13 by Bladelord';
+  }catch(e){}
+})();
+</script>
+
+<style id="v22-14-hopi-table-center-inline-label-fix-css">
+/* v22.14/A22.14: HOPI final layout polish.
+   - Physical Exam/Diagnostic Studies tables: invisible borders, centered inside stem usable width, word wrapping.
+   - Normalize History heading bottom gap.
+   - Keep Question: and Reason for Visit/Chief Concern: labels on the same line as their statements.
+   Scoped to HOPI patient-chart stems only. */
+#examScreen .stem .patient-chart table.hopi-invisible-border-table,
+#examScreen .stem .patient-chart .vitals-table.hopi-invisible-border-table,
+#examScreen .stem .patient-chart .stem-study-table.hopi-invisible-border-table{
+  display:table!important;
+  margin:8px auto 12px auto!important;
+  width:auto!important;
+  max-width:100%!important;
+  table-layout:auto!important;
+  border-collapse:collapse!important;
+  border-color:transparent!important;
+}
+#examScreen .stem .patient-chart table.hopi-invisible-border-table th,
+#examScreen .stem .patient-chart table.hopi-invisible-border-table td,
+#examScreen .stem .patient-chart .vitals-table.hopi-invisible-border-table th,
+#examScreen .stem .patient-chart .vitals-table.hopi-invisible-border-table td,
+#examScreen .stem .patient-chart .stem-study-table.hopi-invisible-border-table th,
+#examScreen .stem .patient-chart .stem-study-table.hopi-invisible-border-table td{
+  border:1px solid transparent!important;
+  border-color:transparent!important;
+  white-space:normal!important;
+  overflow-wrap:anywhere!important;
+  word-break:normal!important;
+  vertical-align:top!important;
+}
+#examScreen .stem .patient-chart .hopi-history-heading,
+#examScreen .stem .patient-chart .hopi-main-heading.hopi-history-heading,
+#examScreen .stem .patient-chart h1.hopi-history-heading,
+#examScreen .stem .patient-chart h2.hopi-history-heading,
+#examScreen .stem .patient-chart h3.hopi-history-heading,
+#examScreen .stem .patient-chart h4.hopi-history-heading,
+#examScreen .stem .patient-chart h5.hopi-history-heading,
+#examScreen .stem .patient-chart h6.hopi-history-heading{
+  margin-bottom:4px!important;
+}
+#examScreen .stem .patient-chart .hopi-history-heading + .hopi-subheading-block,
+#examScreen .stem .patient-chart .hopi-history-heading + .hopi-reason-line,
+#examScreen .stem .patient-chart .hopi-history-heading + .hopi-question-line{
+  margin-top:0!important;
+}
+#examScreen .stem .patient-chart .hopi-question-line,
+#examScreen .stem .patient-chart .hopi-reason-line{
+  display:block!important;
+  margin:10px 0 6px 0!important;
+  padding:0!important;
+  font-weight:400!important;
+  text-decoration:none!important;
+  white-space:normal!important;
+}
+#examScreen .stem .patient-chart .hopi-question-line .hopi-question-label,
+#examScreen .stem .patient-chart .hopi-question-label{
+  display:inline!important;
+  margin:0!important;
+  padding:0!important;
+  font-weight:700!important;
+  text-decoration:underline!important;
+}
+#examScreen .stem .patient-chart .hopi-reason-line .hopi-reason-label,
+#examScreen .stem .patient-chart .hopi-reason-label{
+  display:inline!important;
+  margin:0!important;
+  padding:0!important;
+  font-weight:700!important;
+  text-decoration:none!important;
+}
+#examScreen .stem .patient-chart .hopi-question-line .hopi-subheading-block,
+#examScreen .stem .patient-chart .hopi-reason-line .hopi-subheading-block{
+  display:inline!important;
+  margin:0!important;
+  padding:0!important;
+}
+</style>
+<script id="v22-14-hopi-table-center-inline-label-fix-js">
+(function(){
+  if(window.__STEP_SIM_V2214_HOPI_FINAL_LAYOUT) return;
+  window.__STEP_SIM_V2214_HOPI_FINAL_LAYOUT = true;
+  function clean(s){ return String(s||'').replace(/\u00a0/g,' ').replace(/\s+/g,' ').trim(); }
+  function norm(s){ return clean(s).replace(/[:：]\s*$/,'').toLowerCase(); }
+  function escapeRe(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+  function textExactLabel(s, label){
+    var base = label.replace(/[:：]\s*$/,'');
+    return new RegExp('^\\s*' + escapeRe(base) + '\\s*[:：]?\\s*$', 'i').test(String(s||''));
+  }
+  function textStartsLabel(s, label){
+    var base = label.replace(/[:：]\s*$/,'');
+    return new RegExp('^\\s*' + escapeRe(base) + '\\s*[:：]?', 'i').test(String(s||''));
+  }
+  function isWhitespaceText(n){ return n && n.nodeType === 3 && !clean(n.nodeValue); }
+  function nextMeaningfulSibling(n){ var x = n ? n.nextSibling : null; while(x && isWhitespaceText(x)) x = x.nextSibling; return x; }
+  function nodeText(n){ return clean(n && (n.textContent || n.nodeValue || '')); }
+  function isHardBoundary(n){
+    if(!n) return true;
+    if(n.nodeType === 3) return false;
+    if(n.nodeType !== 1) return true;
+    if(n.matches && n.matches('table,.vitals-table,.stem-lab-table,.stem-study-table,ul,ol,script,style')) return true;
+    if(n.classList && (n.classList.contains('hopi-main-heading') || n.classList.contains('hopi-subheading-block') || n.classList.contains('hopi-question-line') || n.classList.contains('hopi-reason-line'))) return true;
+    return false;
+  }
+  function moveIntoLine(line, node){
+    if(!line || !node || isHardBoundary(node)) return false;
+    try{
+      if(node.nodeType === 3){ line.appendChild(node); return true; }
+      if(node.nodeType !== 1) return false;
+      while(node.firstChild) line.appendChild(node.firstChild);
+      if(node.parentNode) node.parentNode.removeChild(node);
+      return true;
+    }catch(e){ return false; }
+  }
+  function makeLine(labelText, labelClass, lineClass, underline){
+    var line = document.createElement('span');
+    line.className = lineClass;
+    var lab = document.createElement('span');
+    lab.className = labelClass;
+    lab.textContent = labelText.replace(/\s*$/,'');
+    line.appendChild(lab);
+    line.appendChild(document.createTextNode(' '));
+    return line;
+  }
+  function wrapLeadingLabel(el, labelText, labelClass, lineClass){
+    if(!el || el.dataset.v2214InlineLabelWrapped) return;
+    var html = el.innerHTML || '';
+    if(html.indexOf(labelClass.split(/\s+/)[0]) !== -1) return;
+    var base = labelText.replace(/[:：]\s*$/,'');
+    var re = new RegExp('(^|>)(\\s*)(' + escapeRe(base) + ')\\s*[:：]?', 'i');
+    var next = html.replace(re, function(m,p1,p2,p3){ return p1 + p2 + '<span class="' + labelClass + '">' + p3 + ':</span>'; });
+    if(next !== html){
+      try{ el.innerHTML = next; el.dataset.v2214InlineLabelWrapped = '1'; }catch(e){}
+    }
+    if(el.classList){
+      el.classList.add(lineClass);
+      el.classList.remove('hopi-main-heading','hopi-subheading-block');
+    }
+  }
+  function normalizeLabelLine(chart, labelText, labelClass, lineClass){
+    var selector = 'h1,h2,h3,h4,h5,h6,p,div,span,b,strong,.chart-heading,.chart-main-heading,.chart-label,.chart-subheading,.hopi-main-heading,.hopi-subheading,.hopi-subheading-block';
+    var candidates = Array.prototype.slice.call(chart.querySelectorAll(selector));
+    candidates.forEach(function(el){
+      if(!el || !el.parentNode || !el.textContent) return;
+      if(el.closest && el.closest('table,.vitals-table,.stem-lab-table,.stem-study-table,.v15-highlight,[data-v15-highlight-id],mark,script,style')) return;
+      if(el.closest && el.closest('.' + lineClass) && !(el.classList && el.classList.contains(lineClass))) return;
+      var txt = clean(el.textContent || '');
+      if(!textStartsLabel(txt, labelText)) return;
+      var exact = textExactLabel(txt, labelText);
+      if(exact){
+        var target = el;
+        var parent = el.parentElement;
+        if(parent && parent !== chart && textExactLabel(parent.textContent || '', labelText) && !parent.matches('table,.vitals-table,.stem-lab-table,.stem-study-table')) target = parent;
+        if(target.dataset && target.dataset.v2214LineDone) return;
+        var line = makeLine(labelText, labelClass, lineClass);
+        var oldParent = target.parentNode;
+        if(!oldParent) return;
+        var next = nextMeaningfulSibling(target);
+        try{ oldParent.replaceChild(line, target); }catch(e){ return; }
+        if(next && !isHardBoundary(next)) moveIntoLine(line, next);
+        else {
+          var nextParent = nextMeaningfulSibling(line.parentNode && line.parentNode.nextSibling);
+          if(nextParent && !isHardBoundary(nextParent)) moveIntoLine(line, nextParent);
+        }
+        line.dataset.v2214LineDone = '1';
+      }else{
+        wrapLeadingLabel(el, labelText, labelClass, lineClass);
+      }
+    });
+  }
+  function normalizeHistorySpacing(chart){
+    Array.prototype.slice.call(chart.querySelectorAll('h1,h2,h3,h4,h5,h6,p,div,span,b,strong,.hopi-main-heading,.chart-heading,.chart-main-heading')).forEach(function(el){
+      if(!el || !el.textContent) return;
+      if(norm(el.textContent) === 'history') el.classList.add('hopi-history-heading');
+    });
+  }
+  function normalizeHopiFinalLayoutV2214(root){
+    try{
+      Array.prototype.slice.call((root||document).querySelectorAll('#examScreen .stem .patient-chart')).forEach(function(chart){
+        normalizeHistorySpacing(chart);
+        normalizeLabelLine(chart, 'Question:', 'hopi-question-label', 'hopi-question-line');
+        normalizeLabelLine(chart, 'Reason for Visit/Chief Concern:', 'hopi-reason-label hopi-subheading-inline', 'hopi-reason-line');
+        if(window.normalizeHopiInvisibleTableBordersV2213) window.normalizeHopiInvisibleTableBordersV2213(document);
+      });
+    }catch(e){ console.warn('v22.14 HOPI final layout patch failed', e); }
+  }
+  window.normalizeHopiFinalLayoutV2214 = normalizeHopiFinalLayoutV2214;
+  try{
+    if(typeof renderQuestion === 'function' && !renderQuestion.__v2214HopiFinalLayout){
+      var baseRenderQuestionV2214 = renderQuestion;
+      renderQuestion = function(){
+        var out = baseRenderQuestionV2214.apply(this, arguments);
+        normalizeHopiFinalLayoutV2214(document);
+        return out;
+      };
+      renderQuestion.__v2214HopiFinalLayout = true;
+    }
+  }catch(e){ console.warn('v22.14 renderQuestion patch failed', e); }
+  try{
+    var mo = new MutationObserver(function(muts){
+      for(var i=0;i<muts.length;i++){
+        var t = muts[i].target;
+        if(t && t.querySelector && (t.matches && (t.matches('#examScreen') || t.matches('.stem') || t.matches('.patient-chart')) || t.querySelector('#examScreen .stem .patient-chart'))){
+          normalizeHopiFinalLayoutV2214(document); break;
+        }
+      }
+    });
+    mo.observe(document.documentElement,{childList:true,subtree:true});
+  }catch(e){}
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ normalizeHopiFinalLayoutV2214(document); }); else normalizeHopiFinalLayoutV2214(document);
+  try{
+    var ipad = window.__STEP_SIM_STORAGE_PROFILE === 'ipad-browser-library-primary';
+    window.__STEP_SIM_VERSION = ipad ? 'A22.14' : '22.14';
+    document.title = ipad ? 'Step Exam Simulator A22.14 iPad by Bladelord' : 'Step Exam Simulator v22.14 by Bladelord';
+  }catch(e){}
+})();
+</script>
+
+
+</body></html>
