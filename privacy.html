@@ -13,22 +13,22 @@ body{margin:0;background:#f4f7f9;color:#13232f;font:16px/1.6 -apple-system,Blink
 <p><small>Effective date: August 8, 2026</small></p>
 <h2>What the application stores locally</h2>
 <p>The simulator stores imported form files, simulator progress, highlights, answer selections, marks, notes, timing information, results, Qbank progress, and related simulator state in browser-local storage or in a user-selected local DATA folder. Local simulator storage remains the primary runtime data source.</p>
-<h2>Optional Google Progress Sync</h2>
-<p>If you choose to connect a Google Account, the application requests only the Google Drive application-data permission <code>https://www.googleapis.com/auth/drive.appdata</code>. This permission is used only to create, read, update, and recover the application's hidden progress synchronization file in Google Drive's <code>appDataFolder</code>.</p>
-<p>The test build uses the hidden file <code>step-simulator-progress.TEST.progress.sync.json</code>. The file is not placed in the user's visible My Drive.</p>
+<h2>Optional Google Progress Backup</h2>
+<p>If you choose to connect a Google Account, the application requests only the Google Drive application-data permission <code>https://www.googleapis.com/auth/drive.appdata</code>. This permission is used only to create, read, update, and recover the application's hidden progress backup files and small backup manifest in Google Drive's <code>appDataFolder</code>.</p>
+<p>The test build uses a small hidden manifest named <code>step-simulator-progress.TEST.manifest.json</code>, one hidden backup file per form/version, and a hidden Qbank backup when Qbank progress exists. These files are stored in Google Drive <code>appDataFolder</code> and are not placed in the user's visible My Drive.</p>
 <h2>Data sent to Google Drive</h2>
-<p>Google Progress Sync is designed to synchronize durable simulator progress such as answers, marks, strikethroughs, highlights, notes, timing/progress state, attempts, results, suspended progress, Qbank history, and selected result metadata. Imported source form files and simulator image/assets folders are not uploaded by the Progress Sync feature.</p>
+<p>Google Progress Backup is designed to back up durable simulator progress such as answers, marks, strikethroughs, highlights, notes, timing/progress state, attempts, results, suspended progress, Qbank history, and selected result metadata. Imported source form files and simulator image/assets folders are not uploaded by the Progress Sync feature.</p>
 <h2>How Google data is used</h2>
-<p>Google Drive application data is used only to synchronize and recover the user's simulator progress across their own browser installations. The application does not use Google Drive data for advertising, profiling, sale, or unrelated analytics.</p>
+<p>Google Drive application data is used only to back up and recover the user's simulator progress across their own browser installations. The application does not use Google Drive data for advertising, profiling, sale, or unrelated analytics.</p>
 <h2>Servers and sharing</h2>
-<p>This GitHub Pages application has no application backend or proprietary cloud database for progress synchronization. Progress synchronization occurs directly between the user's browser and Google Drive APIs. The application does not sell Google user data or share it with advertisers.</p>
+<p>This GitHub Pages application has no application backend or proprietary cloud database for progress synchronization. Progress backup/restore occurs directly between the user's browser and Google Drive APIs. The application does not sell Google user data or share it with advertisers.</p>
 <h2>OAuth tokens</h2>
 <p>Google OAuth access tokens are short-lived and are kept only in browser session state. They are not written to simulator IndexedDB progress, Google Drive synchronization snapshots, exported simulator files, service-worker caches, or source code. No OAuth client secret is used in the browser application.</p>
 <h2>Disconnecting and deleting data</h2>
-<p>Disconnecting Google Progress Sync on one browser clears that browser's current authorization session and disables automatic sync there. It does not delete local simulator progress and does not revoke access for other devices. It also does not automatically delete the hidden Drive synchronization file.</p>
+<p>Disconnecting Google Progress Backup on one browser clears that browser's current authorization session and disables automatic backup there. It does not delete local simulator progress and does not revoke access for other devices. It also does not automatically delete the hidden Drive backup files.</p>
 <p>Users may delete browser-local simulator data using browser/site-data controls or the simulator's own local progress controls. Google account permissions may be managed from the user's Google Account permissions page. Google Drive app data may also be removed by removing the application's stored data/access through Google account/Drive controls where available.</p>
 <h2>Test-build safeguards</h2>
-<p>This test deployment uses separate IndexedDB database names, local-storage keys, service-worker caches, synchronization metadata, and a separate Google Drive test filename so that experimentation does not intentionally modify the production simulator's browser storage or future production synchronization file.</p>
+<p>This test deployment uses separate IndexedDB database names, local-storage keys, service-worker caches, synchronization metadata, and a separate Google Drive TEST-4 manifest and per-form backup namespace so that experimentation does not intentionally modify the production simulator's browser storage or future production synchronization file.</p>
 <h2>Changes</h2>
 <p>This policy may be updated if the synchronization implementation or data handling changes. The current version will be published at this page.</p>
 <h2>Contact</h2>

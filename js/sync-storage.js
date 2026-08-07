@@ -1,117 +1,89 @@
 (function(){
   'use strict';
-  const R=window.StepProgressSync, U=R.util, MG=R.merge;
-  function bridge(){ if(!window.StepExamSyncBridge) throw new Error('Simulator sync bridge is not available. Reload the app.'); return window.StepExamSyncBridge; }
-  function maxDate(values){ return new Date(Math.max(0,...values.map(U.validDate))).toISOString(); }
+  const R=window.StepProgressSync, U=R.util, B=R.backupModel;
+  function bridge(){if(!window.StepExamSyncBridge)throw new Error('Simulator backup bridge is not available. Reload the app.');return window.StepExamSyncBridge;}
+  function parseMaybe(text,label){return text==null?null:U.parseJson(text,label);}
   function deriveModified(progress,suspended,rec){
-    const v=[];
-    try{ v.push(progress?.bundle?.updatedAt,progress?.exportedAt,progress?.session?.updatedAt,progress?.session?.completedAt,progress?.updatedAt); (progress?.bundle?.attempts||[]).forEach(a=>v.push(a?.completedAt,a?.createdAt,a?.session?.updatedAt,a?.session?.completedAt)); }catch(e){}
-    try{ v.push(suspended?.updatedAt,suspended?.resumeCapturedAt,rec?.updatedAt); }catch(e){}
-    const ms=Math.max(0,...v.map(U.validDate)); return ms?new Date(ms).toISOString():U.iso();
+    const v=[];try{v.push(progress?.bundle?.updatedAt,progress?.exportedAt,progress?.session?.updatedAt,progress?.session?.completedAt,progress?.updatedAt);(progress?.bundle?.attempts||[]).forEach(a=>v.push(a?.completedAt,a?.createdAt,a?.session?.updatedAt,a?.session?.completedAt));}catch(e){}
+    try{v.push(suspended?.updatedAt,suspended?.resumeCapturedAt,rec?.updatedAt);}catch(e){}
+    const ms=Math.max(0,...v.map(U.validDate));return ms?new Date(ms).toISOString():U.iso();
   }
-  function parseMaybe(text,label){ return text==null?null:U.parseJson(text,label); }
-  function cloudQbankObject(obj,deviceId){
-    if(!obj) return null; const c=U.clone(obj); delete c.settings; delete c.lastSelectedFormIds;
-    return {progress:c,modifiedAt:deriveModified(c,null,null),deviceId};
-  }
-  async function buildLocalState(opts={}){
-    const b=bridge(); await b.ensureReady(); if(opts.flush!==false) await b.flushActive();
-    const cat=await b.catalog(), deviceId=await R.meta.deviceId(); const forms={},loadedKeys=[];
+  async function readLocal({flush=true}={}){
+    const b=bridge();await b.ensureReady();if(flush)await b.flushActive();
+    const cat=await b.catalog(), deviceId=await R.meta.deviceId(), forms={};
     for(const rec of (cat.forms||[])){
-      const key=MG.entityKey(rec.id,rec.bankHash); loadedKeys.push(key);
-      const ptxt=await b.readFormProgressText(rec.id), stxt=await b.readFormSuspendedText(rec.id);
-      const progress=parseMaybe(ptxt,`${rec.id} progress`), suspended=parseMaybe(stxt,`${rec.id} suspended progress`), score=String(rec.threeDigitScore||'');
-      if(progress || suspended || score){
-        forms[key]={formId:rec.id,bankHash:String(rec.bankHash||''),progress:progress||null,suspended:suspended||null,threeDigitScore:score,modifiedAt:deriveModified(progress,suspended,rec),deviceId};
+      const progress=parseMaybe(await b.readFormProgressText(rec.id),`${rec.id} progress`);
+      const suspended=parseMaybe(await b.readFormSuspendedText(rec.id),`${rec.id} suspended progress`);
+      const score=String(rec.threeDigitScore||'');
+      if(progress||suspended||score){
+        const key=B.entityKey(rec.id,rec.bankHash);
+        forms[key]={key,kind:'form',formId:String(rec.id),bankHash:String(rec.bankHash||''),progress:progress||null,suspended:suspended||null,threeDigitScore:score,modifiedAt:deriveModified(progress,suspended,rec),deviceId};
       }
     }
-    const qtxt=await b.readQbankText(), qobj=parseMaybe(qtxt,'Qbank progress');
-    const tombstones=await R.meta.get('localTombstones',{forms:{},qbank:null}) || {forms:{},qbank:null};
-    if(!tombstones.forms || typeof tombstones.forms!=='object') tombstones.forms={};
-    return {forms,loadedKeys,qbank:cloudQbankObject(qobj,deviceId),tombstones,capturedAt:U.iso(),deviceId,runtime:b.runtime(),catalogCount:(cat.forms||[]).length};
+    const qtxt=await b.readQbankText();let qbank=null;
+    if(qtxt){const q=parseMaybe(qtxt,'Qbank progress');if(q){delete q.settings;delete q.lastSelectedFormIds;qbank={key:B.qbankKey,kind:'qbank',progress:q,modifiedAt:deriveModified(q,null,null),deviceId};}}
+    return {forms,qbank,deviceId,catalog:cat,runtime:b.runtime(),capturedAt:U.iso()};
   }
-  function migrateCloud(snapshot){
-    if(!snapshot || typeof snapshot!=='object') throw new Error('Remote progress snapshot is invalid.');
-    if(snapshot.type!==R.config.CLOUD_TYPE) throw new Error('Remote file is not a step-simulator-progress TEST sync snapshot.');
-    const ver=Number(snapshot.schemaVersion||0);
-    if(ver===1) return MG.validateCloud(U.clone(snapshot));
-    if(ver>R.config.SCHEMA_VERSION) throw new Error(`Remote snapshot schema ${ver} is newer than this build supports.`);
-    throw new Error(`Remote snapshot schema ${ver||'missing'} is unsupported.`);
+  function payloadOf(entity){
+    if(!entity)return null;
+    if(entity.kind==='qbank')return {progress:entity.progress||null};
+    return {progress:entity.progress||null,suspended:entity.suspended||null,threeDigitScore:String(entity.threeDigitScore||'')};
   }
-  function localAsCloud(local){
-    const c=MG.emptyCloud(local.deviceId); c.generatedAt=local.capturedAt||U.iso(); c.forms=U.clone(local.forms||{}); c.qbank=U.clone(local.qbank||null); return c;
+  async function hashEntity(entity){return entity?await U.sha256Text(U.stable(payloadOf(entity))):'';}
+  async function localIndex(opts={}){
+    const local=await readLocal(opts), index={};
+    for(const [key,e] of Object.entries(local.forms)){index[key]={...e,contentHash:await hashEntity(e)};}
+    if(local.qbank)index[B.qbankKey]={...local.qbank,contentHash:await hashEntity(local.qbank)};
+    return {...local,index};
   }
-  function sessionsFromProgress(p){
-    if(!p) return []; if(Array.isArray(p?.bundle?.attempts)) return p.bundle.attempts.map(a=>a&&a.session).filter(Boolean); if(p.session) return [p.session]; if(Array.isArray(p.blocks)) return [p]; return [];
+  function makeFormBackup(entity,meta){
+    return {type:R.config.FORM_BACKUP_TYPE,schemaVersion:R.config.SCHEMA_VERSION,backupId:meta.backupId,revision:meta.revision,createdAt:meta.updatedAt,deviceId:meta.deviceId,build:R.config.BUILD,formId:entity.formId,bankHash:entity.bankHash,contentHash:meta.contentHash,payload:payloadOf(entity)};
   }
-  function stats(localOrCloud){
-    const forms=localOrCloud.forms||{}; let attempts=0,questions=0,answered=0,marked=0,stemHighlights=0,expHighlights=0,struck=0,notes=0;
-    for(const e of Object.values(forms)){
-      for(const s of sessionsFromProgress(e?.progress)){
-        attempts++;
-        for(const bp of (s.blocks||[])){
-          const n=Math.max(Number(bp?.total)||0,Array.isArray(bp?.answers)?bp.answers.length:0); questions+=n;
-          if(Array.isArray(bp?.answers)) answered+=bp.answers.filter(x=>x!==null&&x!==undefined).length;
-          if(Array.isArray(bp?.flagged)) marked+=bp.flagged.filter(Boolean).length;
-          if(bp?.struck&&typeof bp.struck==='object') Object.values(bp.struck).forEach(a=>{if(Array.isArray(a))struck+=a.length;});
-          if(bp?.stemHighlightAnchors&&typeof bp.stemHighlightAnchors==='object') Object.values(bp.stemHighlightAnchors).forEach(a=>{if(Array.isArray(a))stemHighlights+=a.length;});
-          if(bp?.explanationHighlightAnchors&&typeof bp.explanationHighlightAnchors==='object') Object.values(bp.explanationHighlightAnchors).forEach(a=>{if(Array.isArray(a))expHighlights+=a.length;});
-          if(String(bp?.notes||'').trim()) notes++;
-        }
-      }
-      const gs=e?.progress?.bundle?.explanationHighlightAnchorsByQuestionKey; if(gs&&typeof gs==='object') Object.values(gs).forEach(a=>{if(Array.isArray(a))expHighlights+=a.length;});
-    }
-    return {forms:Object.keys(forms).length,attempts,questions,answered,marked,stemHighlights,expHighlights,struck,notes,qbankTests:Array.isArray(localOrCloud.qbank?.progress?.sessions)?localOrCloud.qbank.progress.sessions.length:0};
+  function makeQbankBackup(entity,meta){
+    return {type:R.config.QBANK_BACKUP_TYPE,schemaVersion:R.config.SCHEMA_VERSION,backupId:meta.backupId,revision:meta.revision,createdAt:meta.updatedAt,deviceId:meta.deviceId,build:R.config.BUILD,contentHash:meta.contentHash,payload:payloadOf(entity)};
   }
-  async function validateLocal(){
-    const local=await buildLocalState({flush:true}), cloud=localAsCloud(local); MG.validateCloud(cloud);
-    const encoded=JSON.stringify(cloud), decoded=migrateCloud(JSON.parse(encoded));
-    const exact=U.stable(cloud)===U.stable(decoded); if(!exact) throw new Error('Local progress failed in-memory round-trip validation.');
-    for(const [key,e] of Object.entries(local.forms)){ if(!e.formId || !e.bankHash) throw new Error(`Progress entity ${key} lacks a stable form ID or bank hash.`); }
-    return {ok:true,bytes:new Blob([encoded]).size,stats:stats(local),loadedForms:local.catalogCount,deviceId:local.deviceId};
+  function validateBackup(obj,entry){
+    if(!obj||typeof obj!=='object')throw new Error('Cloud backup is invalid.');
+    if(Number(obj.schemaVersion)!==R.config.SCHEMA_VERSION)throw new Error(`Unsupported cloud backup schema ${String(obj.schemaVersion)}.`);
+    if(entry.kind==='form'){
+      if(obj.type!==R.config.FORM_BACKUP_TYPE)throw new Error(`Cloud backup type is invalid for ${entry.formId}.`);
+      if(String(obj.formId)!==String(entry.formId)||String(obj.bankHash)!==String(entry.bankHash))throw new Error(`Cloud backup identity mismatch for ${entry.formId}.`);
+    }else if(obj.type!==R.config.QBANK_BACKUP_TYPE)throw new Error('Cloud Qbank backup type is invalid.');
+    return obj;
   }
-  async function checkpoint(local){ await R.meta.set('preSyncRecoverySnapshot',U.clone(local)); await R.meta.set('preSyncRecoveryAt',U.iso()); }
-  async function applyCloud(cloud,opts={}){
-    cloud=migrateCloud(cloud); const b=bridge(), cat=await b.catalog(), skip=new Set(opts.skipFormKeys||[]); window.__STEP_SYNC_APPLYING_REMOTE=true;
-    try{
-      for(const rec of (cat.forms||[])){
-        const key=MG.entityKey(rec.id,rec.bankHash); if(skip.has(key)) continue;
-        const tomb=cloud.tombstones?.forms?.[key], ent=cloud.forms?.[key];
-        if(tomb){ await b.deleteFormProgress(rec.id); continue; }
-        if(!ent) continue;
-        if(ent.bankHash!==rec.bankHash) continue;
-        if(ent.progress) await b.writeFormProgressText(rec.id,JSON.stringify(ent.progress),ent.bankHash); else await b.deleteFormProgress(rec.id);
-        await b.writeFormSuspendedText(rec.id,ent.suspended?JSON.stringify(ent.suspended):null,ent.bankHash);
-        await b.setThreeDigitScore(rec.id,ent.threeDigitScore||'');
-      }
-      if(!opts.skipQbank){ if(cloud.tombstones?.qbank) await b.writeQbankText(null); else if(cloud.qbank?.progress) await b.writeQbankText(JSON.stringify(cloud.qbank.progress)); }
-      await b.refresh();
-    } finally { window.__STEP_SYNC_APPLYING_REMOTE=false; }
-  }
+  async function checkpoint(){const local=await readLocal({flush:true});await R.meta.set('preBackupRecoverySnapshot',U.clone(local));await R.meta.set('preBackupRecoveryAt',U.iso());return local;}
   async function restoreCheckpoint(){
-    const cp=await R.meta.get('preSyncRecoverySnapshot',null); if(!cp) throw new Error('No pre-sync recovery checkpoint is available.');
-    const b=bridge(), cat=await b.catalog(), have=new Set(Object.keys(cp.forms||{})); window.__STEP_SYNC_APPLYING_REMOTE=true;
+    const cp=await R.meta.get('preBackupRecoverySnapshot',null);if(!cp)throw new Error('No pre-backup recovery checkpoint is available.');
+    const b=bridge();window.__STEP_SYNC_APPLYING_REMOTE=true;
     try{
-      for(const rec of (cat.forms||[])){
-        const key=MG.entityKey(rec.id,rec.bankHash), ent=cp.forms?.[key];
-        if(ent){ if(ent.progress) await b.writeFormProgressText(rec.id,JSON.stringify(ent.progress),rec.bankHash); else await b.deleteFormProgress(rec.id); await b.writeFormSuspendedText(rec.id,ent.suspended?JSON.stringify(ent.suspended):null,rec.bankHash); await b.setThreeDigitScore(rec.id,ent.threeDigitScore||''); }
-        else if((cp.loadedKeys||[]).includes(key)){ await b.deleteFormProgress(rec.id); await b.setThreeDigitScore(rec.id,''); }
+      for(const rec of (cp.catalog?.forms||[])){
+        const key=B.entityKey(rec.id,rec.bankHash),e=cp.forms?.[key];
+        if(e){if(e.progress)await b.writeFormProgressText(rec.id,JSON.stringify(e.progress),rec.bankHash);else await b.deleteFormProgress(rec.id);await b.writeFormSuspendedText(rec.id,e.suspended?JSON.stringify(e.suspended):null,rec.bankHash);await b.setThreeDigitScore(rec.id,e.threeDigitScore||'');}
       }
-      if(cp.qbank?.progress) await b.writeQbankText(JSON.stringify(cp.qbank.progress)); else await b.writeQbankText(null);
+      if(cp.qbank?.progress)await b.writeQbankText(JSON.stringify(cp.qbank.progress));else await b.writeQbankText(null);
       await b.refresh();
-    } finally { window.__STEP_SYNC_APPLYING_REMOTE=false; }
+    }finally{window.__STEP_SYNC_APPLYING_REMOTE=false;}
     return true;
   }
-  async function verifyApplied(cloud,opts={}){
-    const local=await buildLocalState({flush:false}), skip=new Set(opts.skipFormKeys||[]);
-    for(const key of local.loadedKeys){
-      if(skip.has(key)) continue;
-      const expected=cloud.tombstones?.forms?.[key]?null:(cloud.forms?.[key]||null), actual=local.forms?.[key]||null;
-      const durable=e=>e?{formId:e.formId,bankHash:e.bankHash,progress:e.progress||null,suspended:e.suspended||null,threeDigitScore:String(e.threeDigitScore||'')}:null;
-      if(U.stable(durable(expected))!==U.stable(durable(actual))) throw new Error(`Post-merge verification failed for ${key.split('@@')[0]}.`);
-    }
-    if(!opts.skipQbank){ const expected=cloud.tombstones?.qbank?null:(cloud.qbank||null); if(U.stable(expected?.progress||null)!==U.stable(local.qbank?.progress||null)) throw new Error('Post-merge verification failed for Qbank progress.'); }
-    return true;
+  async function applyBackup(entry,backup){
+    validateBackup(backup,entry);const b=bridge();window.__STEP_SYNC_APPLYING_REMOTE=true;
+    try{
+      if(entry.kind==='qbank'){await b.writeQbankText(JSON.stringify(backup.payload?.progress||{}));}
+      else{
+        const cat=await b.catalog(),rec=(cat.forms||[]).find(x=>String(x.id)===String(entry.formId));
+        if(!rec)throw new Error(`${entry.formId} is not loaded locally. Import the matching form first.`);
+        if(String(rec.bankHash||'')!==String(entry.bankHash||''))throw new Error(`Form version mismatch for ${entry.formId}; cloud backup was not applied.`);
+        if(backup.payload?.progress)await b.writeFormProgressText(entry.formId,JSON.stringify(backup.payload.progress),entry.bankHash);else await b.deleteFormProgress(entry.formId);
+        await b.writeFormSuspendedText(entry.formId,backup.payload?.suspended?JSON.stringify(backup.payload.suspended):null,entry.bankHash);
+        await b.setThreeDigitScore(entry.formId,backup.payload?.threeDigitScore||'');
+      }
+      await b.refresh();
+    }finally{window.__STEP_SYNC_APPLYING_REMOTE=false;}
   }
-  R.storage={buildLocalState,migrateCloud,localAsCloud,stats,validateLocal,checkpoint,applyCloud,restoreCheckpoint,verifyApplied};
+  function sessionsFromProgress(p){if(!p)return[];if(Array.isArray(p?.bundle?.attempts))return p.bundle.attempts.map(a=>a&&a.session).filter(Boolean);if(p.session)return[p.session];if(Array.isArray(p.blocks))return[p];return[];}
+  function stats(local){let attempts=0,questions=0,answered=0,marked=0,stemHighlights=0,expHighlights=0,struck=0,notes=0;for(const e of Object.values(local.forms||{})){for(const s of sessionsFromProgress(e.progress)){attempts++;for(const bp of (s.blocks||[])){const n=Math.max(Number(bp?.total)||0,Array.isArray(bp?.answers)?bp.answers.length:0);questions+=n;if(Array.isArray(bp?.answers))answered+=bp.answers.filter(x=>x!==null&&x!==undefined).length;if(Array.isArray(bp?.flagged))marked+=bp.flagged.filter(Boolean).length;if(bp?.struck&&typeof bp.struck==='object')Object.values(bp.struck).forEach(a=>{if(Array.isArray(a))struck+=a.length;});if(bp?.stemHighlightAnchors&&typeof bp.stemHighlightAnchors==='object')Object.values(bp.stemHighlightAnchors).forEach(a=>{if(Array.isArray(a))stemHighlights+=a.length;});if(bp?.explanationHighlightAnchors&&typeof bp.explanationHighlightAnchors==='object')Object.values(bp.explanationHighlightAnchors).forEach(a=>{if(Array.isArray(a))expHighlights+=a.length;});if(String(bp?.notes||'').trim())notes++;}}const gs=e?.progress?.bundle?.explanationHighlightAnchorsByQuestionKey;if(gs&&typeof gs==='object')Object.values(gs).forEach(a=>{if(Array.isArray(a))expHighlights+=a.length;});}
+    return {forms:Object.keys(local.forms||{}).length,attempts,questions,answered,marked,stemHighlights,expHighlights,struck,notes,qbankTests:Array.isArray(local.qbank?.progress?.sessions)?local.qbank.progress.sessions.length:0};
+  }
+  async function validateLocal(){const local=await localIndex({flush:true});for(const [key,e] of Object.entries(local.forms)){if(!e.formId||!e.bankHash)throw new Error(`Progress entity ${key} lacks a stable form ID or bank hash.`);const meta={backupId:'TEST',revision:1,updatedAt:U.iso(),deviceId:local.deviceId,contentHash:e.contentHash};const b=makeFormBackup(e,meta);validateBackup(JSON.parse(JSON.stringify(b)),{kind:'form',formId:e.formId,bankHash:e.bankHash});}return {ok:true,stats:stats(local),loadedForms:(local.catalog.forms||[]).length,deviceId:local.deviceId,entities:Object.keys(local.index).length,estimatedBytes:new Blob([U.stable(Object.values(local.index).map(payloadOf))]).size};}
+  R.storage={readLocal,localIndex,payloadOf,hashEntity,makeFormBackup,makeQbankBackup,validateBackup,checkpoint,restoreCheckpoint,applyBackup,stats,validateLocal};
 })();
