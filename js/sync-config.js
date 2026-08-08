@@ -3,7 +3,7 @@
   const ROOT = window.StepProgressSync = window.StepProgressSync || {};
   const C = ROOT.config = Object.freeze({
     APP_NAME: 'step-simulator-progress',
-    BUILD: 'STEP-PROGRESS-TEST-4',
+    BUILD: 'STEP-PROGRESS-TEST-5',
     GOOGLE_CLIENT_ID: '640686051076-f6feje0ff4q0g2jo6i50c9sgqo6qk1q6.apps.googleusercontent.com',
     DRIVE_SCOPE: 'https://www.googleapis.com/auth/drive.appdata',
     MANIFEST_FILE: 'step-simulator-progress.TEST.manifest.json',
@@ -11,6 +11,12 @@
     FORM_BACKUP_TYPE: 'step-simulator-progress-test-form-backup',
     QBANK_BACKUP_TYPE: 'step-simulator-progress-test-qbank-backup',
     SCHEMA_VERSION: 1,
+    LIBRARY_MANIFEST_FILE: 'step-simulator-progress.TEST.library.manifest.json',
+    LIBRARY_MANIFEST_TYPE: 'step-simulator-progress-test-library-manifest',
+    LIBRARY_SCHEMA_VERSION: 1,
+    LIBRARY_TRANSFER_DB: 'StepSimulatorProgress_LIBRARY_TRANSFER_TEST_DB',
+    LIBRARY_TRANSFER_STORE: 'chunks',
+    LIBRARY_CHUNK_SIZE: 4 * 1024 * 1024,
     META_DB: 'StepSimulatorProgress_SYNC_META_TEST_DB',
     META_STORE: 'kv',
     TOKEN_SESSION_KEY: 'StepSimulatorProgress_TEST_GoogleToken',

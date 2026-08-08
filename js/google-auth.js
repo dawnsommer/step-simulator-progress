@@ -34,9 +34,10 @@
   }
   async function driveFetch(url,opts={}){
     const token=loadSession(); if(!token) throw new DriveHttpError(401,'Google authorization is unavailable. Reconnect Google.',null);
-    const headers=new Headers(opts.headers||{}); headers.set('Authorization','Bearer '+token.access_token);
-    const resp=await fetch(url,{...opts,headers});
-    if(resp.ok) return resp;
+    const {acceptStatuses=[], ...fetchOpts}=opts||{};
+    const headers=new Headers(fetchOpts.headers||{}); headers.set('Authorization','Bearer '+token.access_token);
+    const resp=await fetch(url,{...fetchOpts,headers});
+    if(resp.ok || acceptStatuses.includes(resp.status)) return resp;
     let body=null,text=''; try{text=await resp.text();body=text?JSON.parse(text):null;}catch(e){}
     const msg=body?.error?.message || text || `Google Drive HTTP ${resp.status}`;
     if(resp.status===401) clearToken();

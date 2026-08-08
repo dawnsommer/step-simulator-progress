@@ -5001,7 +5001,12 @@ document.addEventListener('click', function(e){
         if(typeof setThreeDigitScore === 'function' && !setThreeDigitScore.__v2110Wrapped){
           const v2110BaseSetThreeDigitScore = setThreeDigitScore;
           setThreeDigitScore = async function(id){
+            let before=''; try{ before=String((catalogForm(id)||{}).threeDigitScore||''); }catch(e){}
             const out = await v2110BaseSetThreeDigitScore.apply(this, arguments);
+            try{
+              const rec=catalogForm(id), after=String((rec||{}).threeDigitScore||'');
+              if(before!==after && !window.__STEP_SYNC_APPLYING_REMOTE) window.dispatchEvent(new CustomEvent('stepsim:three-digit-score',{detail:{formId:String(id),bankHash:String((rec||{}).bankHash||''),value:after}}));
+            }catch(e){}
             try{ await renderLibrary(); }catch(e){}
             return out;
           };
@@ -5055,10 +5060,31 @@ document.addEventListener('click', function(e){
       })();
 
 
+  /* TEST-5 cloud-library bridge helpers. Progress remains a separate backup system. */
+  async function stepSyncResolveLibraryPath(relPath, createDirs=false){
+    const parts=normalizeZipPath(relPath).split('/').filter(Boolean);
+    if(!parts.length) throw new Error('Invalid library path.');
+    let dir=dataDirHandle;
+    for(let i=0;i<parts.length-1;i++) dir=await dir.getDirectoryHandle(parts[i],{create:!!createDirs});
+    return {dir,name:parts[parts.length-1]};
+  }
+  async function stepSyncWalkLibrary(dir,prefix='',out=[]){
+    for await(const [name,h] of dir.entries()){
+      const path=prefix?`${prefix}/${name}`:name;
+      if(path==='progress' || path.startsWith('progress/')) continue;
+      if(h.kind==='directory') await stepSyncWalkLibrary(h,path,out);
+      else if(h.kind==='file'){
+        const file=await h.getFile();
+        out.push({path,size:Number(file.size)||0,type:file.type||'application/octet-stream',lastModified:Number(file.lastModified)||0});
+      }
+    }
+    return out;
+  }
+
   /* step-simulator-progress TEST: narrow storage bridge.
      This exposes only durable progress operations; form source files/assets stay private to the simulator. */
   window.StepExamSyncBridge = Object.freeze({
-    build: 'STEP-PROGRESS-TEST-4',
+    build: 'STEP-PROGRESS-TEST-5',
     async ensureReady(){
       if(!dataDirHandle){ await restoreLastDataFolder(); }
       if(!dataDirHandle) throw new Error('Simulator library storage is not available.');
@@ -5075,6 +5101,10 @@ document.addEventListener('click', function(e){
       return { examVisible, activeFormId:activeRunContext&&activeRunContext.formId||'', activeType:activeRunContext&&activeRunContext.type||'', qbank:!!(activeRunContext&&activeRunContext.qbank), hasActiveSession:!!activeSession };
     },
     async catalog(){ await this.ensureReady(); ensureCatalogShape(); return JSON.parse(JSON.stringify(catalog)); },
+    async listLibraryFiles(){ await this.ensureReady(); const out=await stepSyncWalkLibrary(dataDirHandle,'',[]); return out.sort((a,b)=>a.path.localeCompare(b.path)); },
+    async readLibraryFileBlob(path){ await this.ensureReady(); const r=await stepSyncResolveLibraryPath(path,false); const fh=await r.dir.getFileHandle(r.name,{create:false}); return await fh.getFile(); },
+    async writeLibraryFileBlob(path,blob){ await this.ensureReady(); const r=await stepSyncResolveLibraryPath(path,true); await writeBinary(r.dir,r.name,blob); return true; },
+    async refreshLibraryAfterRestore(){ await this.ensureReady(); try{ await scanDataFolder(); }catch(e){ console.warn('Library rescan after cloud restore failed',e); } try{ await renderLibrary(); }catch(e){} try{ await renderQbankMode(); }catch(e){} return true; },
     async readFormProgressText(id){ await this.ensureReady(); try{return await readText(await progressDir(),`${id}_progress_save.json`);}catch(e){return null;} },
     async readFormSuspendedText(id){ await this.ensureReady(); try{return await readText(await progressDir(),`${id}_suspended_test.json`);}catch(e){return null;} },
     async readQbankText(){ await this.ensureReady(); try{return await readText(await progressDir(),'QBANK_MODE_progress.json');}catch(e){return null;} },
@@ -5106,7 +5136,7 @@ document.addEventListener('click', function(e){
       if(local.lastSelectedFormIds!==undefined) incoming.lastSelectedFormIds=local.lastSelectedFormIds; else delete incoming.lastSelectedFormIds;
       await writeText(await progressDir(),'QBANK_MODE_progress.json',JSON.stringify(incoming,null,2)); try{await renderQbankMode();}catch(e){} return true;
     },
-    async setThreeDigitScore(id,value){ await this.ensureReady(); const rec=catalogForm(id); if(!rec) throw new Error(`Form ${id} is not loaded locally.`); const nextScore=value==null?'':String(value); const scoreChanged=String(rec.threeDigitScore||'')!==nextScore; rec.threeDigitScore=nextScore; if(scoreChanged && !window.__STEP_SYNC_APPLYING_REMOTE) rec.updatedAt=nowIso(); upsertCatalogForm(rec); await writeCatalog(); try{await renderLibrary();}catch(e){} return true; },
+    async setThreeDigitScore(id,value){ await this.ensureReady(); const rec=catalogForm(id); if(!rec) throw new Error(`Form ${id} is not loaded locally.`); const nextScore=value==null?'':String(value); const scoreChanged=String(rec.threeDigitScore||'')!==nextScore; rec.threeDigitScore=nextScore; if(scoreChanged && !window.__STEP_SYNC_APPLYING_REMOTE) rec.updatedAt=nowIso(); upsertCatalogForm(rec); await writeCatalog(); if(scoreChanged && !window.__STEP_SYNC_APPLYING_REMOTE){ try{window.dispatchEvent(new CustomEvent('stepsim:three-digit-score',{detail:{formId:String(id),bankHash:String(rec.bankHash||''),value:nextScore}}));}catch(_e){} } try{await renderLibrary();}catch(e){} return true; },
     async refresh(){ try{await refreshProgressSummaries();}catch(e){} try{await renderLibrary();}catch(e){} try{await renderQbankMode();}catch(e){} return true; }
   });
 
@@ -10047,11 +10077,12 @@ try{
 </script>
 
 <!-- step-simulator-progress TEST sync laboratory -->
-<script src="./js/sync-config.js?v=STEP-PROGRESS-TEST-4"></script>
-<script src="./js/sync-merge.js?v=STEP-PROGRESS-TEST-4"></script>
-<script src="./js/sync-storage.js?v=STEP-PROGRESS-TEST-4"></script>
-<script src="./js/google-auth.js?v=STEP-PROGRESS-TEST-4"></script>
-<script src="./js/progress-sync.js?v=STEP-PROGRESS-TEST-4"></script>
+<script src="./js/sync-config.js?v=STEP-PROGRESS-TEST-5"></script>
+<script src="./js/sync-merge.js?v=STEP-PROGRESS-TEST-5"></script>
+<script src="./js/sync-storage.js?v=STEP-PROGRESS-TEST-5"></script>
+<script src="./js/google-auth.js?v=STEP-PROGRESS-TEST-5"></script>
+<script src="./js/progress-sync.js?v=STEP-PROGRESS-TEST-5"></script>
+<script src="./js/library-backup.js?v=STEP-PROGRESS-TEST-5"></script>
 
 </body>
 </html>

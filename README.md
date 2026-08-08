@@ -1,6 +1,6 @@
-# step-simulator-progress — TEST-4
+# step-simulator-progress — TEST-5
 
-Isolated GitHub Pages test build for local-first per-form Google Drive progress backup.
+Isolated GitHub Pages test build for local-first Google progress backup plus optional full form-library backup.
 
 ## Test URL
 
@@ -8,30 +8,41 @@ Repository name must remain `step-simulator-progress` so the deployed base path 
 
 `https://dawnsommer.github.io/step-simulator-progress/`
 
-Upload the contents of this ZIP to the repository root (not inside an extra folder), then enable GitHub Pages.
+Upload the contents of this ZIP to the repository root, then enable GitHub Pages.
 
-## TEST-4 backup model
+## Progress backup
 
-- The simulator's existing IndexedDB remains the immediate working database.
-- Routine answers, highlights, flags, notes, timing, etc. save locally only.
-- Google Drive `appDataFolder` contains:
-  - one tiny `step-simulator-progress.TEST.manifest.json`
-  - one hidden backup JSON per form/version
-  - one hidden `QBANK.progress.backup.json` when Qbank progress exists
-- Major checkpoints (submit/end/return from a completed session), app startup when authorization is available, and **Back Up Now** can upload locally changed backup files.
-- Only files whose cloud lineage is still the one this device expects are uploaded automatically.
-- If the same cloud backup changed elsewhere, TEST-4 stops and shows **Backup decision required**. Nothing is overwritten until the user explicitly chooses **Replace Cloud with This Device** or **Restore from Cloud**.
-- Cloud progress is never automatically applied to local storage.
-- Local deletion/reset never automatically deletes a cloud backup. If new progress later appears for that reset form, replacing the older cloud recovery copy requires an explicit decision.
-- Restore creates a local recovery checkpoint first and rolls back if application fails.
-- Progress is guarded by `formId + bankHash`.
+- Existing simulator IndexedDB remains the immediate working database.
+- Routine answers/highlights/flags/notes/timing save locally only.
+- Drive `appDataFolder` stores one hidden progress backup per form/version, one Qbank backup, and tiny `step-simulator-progress.TEST.manifest.json`.
+- Major checkpoints and **Back Up Now** upload only changed progress entities when lineage is safe.
+- **Restore from Cloud** is explicit; cloud never silently overwrites local progress.
+- `formId + bankHash` guards restores.
+- The manually entered **3-digit score is part of that form's progress backup** and changing it marks only that form dirty.
 
-## Isolation from production
+## Full Form Library Backup
 
-TEST-4 continues to use isolated test IndexedDB/localStorage/cache identifiers and an isolated Drive manifest/backup namespace. It does not use the old V3 monolithic snapshot for synchronization, and it does not touch the production `exam-simulator2` repository/cloud namespace.
+A second, manual-only system backs up the source library separately from progress:
+
+- `catalog.json`
+- `forms/**`
+- `assets/**` and other non-progress DATA files
+- excludes `progress/**` because progress uses the per-form backup system above
+
+Cloud library metadata is stored in `step-simulator-progress.TEST.library.manifest.json`. Library files are hidden appDataFolder objects referenced by that manifest.
+
+Large transfers are chunked and show overall progress, current file, transferred bytes, speed, ETA, **Pause / Resume / Cancel**. Transfer state is persisted locally so an interrupted transfer can be resumed after reopening and reconnecting Google.
+
+Uploads are transactional: changed files are uploaded as new Drive objects and the new library manifest is committed only after all required files succeed. The previous committed manifest therefore remains usable if an upload is interrupted.
+
+Restores download directly from Drive into the simulator's browser library/IndexedDB. `catalog.json` is restored last so an interrupted restore does not prematurely switch the active catalog. No iPad Files-app download is required.
+
+## Isolation
+
+TEST-5 keeps separate test IndexedDB/localStorage/cache/Drive namespaces and does not touch production `exam-simulator2`.
 
 ## Google OAuth
 
-The provided public Web Client ID is embedded in `js/sync-config.js`. There is no Client ID input or save control in the UI. Only `https://www.googleapis.com/auth/drive.appdata` is requested.
+The provided public Web Client ID is embedded in `js/sync-config.js`. Only `https://www.googleapis.com/auth/drive.appdata` is requested.
 
-Build: `STEP-PROGRESS-TEST-4`
+Build: `STEP-PROGRESS-TEST-5`

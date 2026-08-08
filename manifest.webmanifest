@@ -1,7 +1,7 @@
 {
   "name": "Step Simulator Progress — Sync Test",
   "short_name": "StepSync TEST",
-  "start_url": "./index.html?v=STEP-PROGRESS-TEST-4",
+  "start_url": "./index.html?v=STEP-PROGRESS-TEST-5",
   "scope": "./",
   "display": "standalone",
   "background_color": "#ffffff",
