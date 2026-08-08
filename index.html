@@ -10,6 +10,9 @@
 <meta name="apple-mobile-web-app-title" content="Step Simulator">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
+<!-- TEST-7 cloud auth loads early so OAuth callback fragments are captured/removed before the simulator initializes. -->
+<script src="./js/sync-config.js?v=STEP-PROGRESS-TEST-7"></script>
+<script src="./js/google-auth.js?v=STEP-PROGRESS-TEST-7"></script>
 
 <style>
 :root{
@@ -2735,7 +2738,7 @@ document.addEventListener('click', function(e){
   async function renameForm(id){ const rec=catalogForm(id); if(!rec) return; const next=await appPrompt('Rename this form:', rec.displayName||id, {title:'Rename Form'}); if(next===null) return; rec.displayName=next.trim()||rec.defaultName||id; upsertCatalogForm(rec); await writeCatalog(); renderLibrary(); renderQbankMode(); }
   async function setThreeDigitScore(id){ const rec=catalogForm(id); if(!rec) return; const next=await appPrompt('Enter converted 3-digit score:', rec.threeDigitScore||'', {title:'Set 3-digit score'}); if(next===null) return; const clean=next.trim(); if(clean && !/^\d{3}$/.test(clean)) return alert('Enter exactly 3 digits, e.g. 245.'); rec.threeDigitScore=clean; rec.updatedAt=nowIso(); upsertCatalogForm(rec); await writeCatalog(); renderLibrary(); }
   async function deleteProgress(id){ const rec=catalogForm(id); if(!rec) return; const ok=await appConfirm(`Delete current progress for ${rec.displayName||id}? The form JSON stays loaded in DATA/forms.`, {okText:'Delete Progress', danger:true}); if(!ok) return; await removeFile(await progressDir(), `${id}_progress_save.json`); rec.progressSummary=null; upsertCatalogForm(rec); await writeCatalog(); renderLibrary(); renderQbankMode(); }
-  async function deleteForm(id){ const rec=catalogForm(id); if(!rec) return; if(!await appConfirm(`Remove ${rec.displayName||id} from DATA catalog and delete its form/progress files?`, {okText:'Remove Form', danger:true})) return; await removeFile(await formsDir(), `${id}.json`); await removeFile(await progressDir(), `${id}_progress_save.json`); removeCatalogForm(id); loadedFormCache.delete(id); await writeCatalog(); renderLibrary(); renderQbankMode(); }
+  async function deleteForm(id){ const rec=catalogForm(id); if(!rec) return; if(!await appConfirm(`Remove ${rec.displayName||id} from DATA catalog and delete its form/progress files?`, {okText:'Remove Form', danger:true})) return; await removeFile(await formsDir(), `${id}.json`); await removeFile(await progressDir(), `${id}_progress_save.json`); try{ window.dispatchEvent(new CustomEvent('stepsim:progress-write',{detail:{filename:`${id}_progress_save.json`,operation:'delete',formId:id,bankHash:rec.bankHash||''}})); }catch(_e){} removeCatalogForm(id); loadedFormCache.delete(id); await writeCatalog(); renderLibrary(); renderQbankMode(); }
   async function optimizeExistingForm(id){
     const rec=catalogForm(id); if(!rec) return;
     const rawText=await readRawFormText(id);
@@ -5060,7 +5063,7 @@ document.addEventListener('click', function(e){
       })();
 
 
-  /* TEST-5 cloud-library bridge helpers. Progress remains a separate backup system. */
+  /* TEST-7 cloud-library bridge helpers. Progress remains a separate backup system. */
   async function stepSyncResolveLibraryPath(relPath, createDirs=false){
     const parts=normalizeZipPath(relPath).split('/').filter(Boolean);
     if(!parts.length) throw new Error('Invalid library path.');
@@ -5084,7 +5087,7 @@ document.addEventListener('click', function(e){
   /* step-simulator-progress TEST: narrow storage bridge.
      This exposes only durable progress operations; form source files/assets stay private to the simulator. */
   window.StepExamSyncBridge = Object.freeze({
-    build: 'STEP-PROGRESS-TEST-5',
+    build: 'STEP-PROGRESS-TEST-7',
     async ensureReady(){
       if(!dataDirHandle){ await restoreLastDataFolder(); }
       if(!dataDirHandle) throw new Error('Simulator library storage is not available.');
@@ -5102,6 +5105,7 @@ document.addEventListener('click', function(e){
     },
     async catalog(){ await this.ensureReady(); ensureCatalogShape(); return JSON.parse(JSON.stringify(catalog)); },
     async listLibraryFiles(){ await this.ensureReady(); const out=await stepSyncWalkLibrary(dataDirHandle,'',[]); return out.sort((a,b)=>a.path.localeCompare(b.path)); },
+    async pruneLibraryToPaths(keepPaths){ await this.ensureReady(); const keep=new Set((keepPaths||[]).map(normalizeZipPath)); const files=await stepSyncWalkLibrary(dataDirHandle,'',[]); let removed=0; for(const f of files){ const path=normalizeZipPath(f.path); if(!path || path==='progress' || path.startsWith('progress/') || keep.has(path)) continue; try{ const r=await stepSyncResolveLibraryPath(path,false); await r.dir.removeEntry(r.name); removed++; }catch(e){ console.warn('Could not prune obsolete library file',path,e); } } loadedFormCache.clear(); return {removed}; },
     async readLibraryFileBlob(path){ await this.ensureReady(); const r=await stepSyncResolveLibraryPath(path,false); const fh=await r.dir.getFileHandle(r.name,{create:false}); return await fh.getFile(); },
     async writeLibraryFileBlob(path,blob){ await this.ensureReady(); const r=await stepSyncResolveLibraryPath(path,true); await writeBinary(r.dir,r.name,blob); return true; },
     async refreshLibraryAfterRestore(){ await this.ensureReady(); try{ await scanDataFolder(); }catch(e){ console.warn('Library rescan after cloud restore failed',e); } try{ await renderLibrary(); }catch(e){} try{ await renderQbankMode(); }catch(e){} return true; },
@@ -10077,12 +10081,10 @@ try{
 </script>
 
 <!-- step-simulator-progress TEST sync laboratory -->
-<script src="./js/sync-config.js?v=STEP-PROGRESS-TEST-5"></script>
-<script src="./js/sync-merge.js?v=STEP-PROGRESS-TEST-5"></script>
-<script src="./js/sync-storage.js?v=STEP-PROGRESS-TEST-5"></script>
-<script src="./js/google-auth.js?v=STEP-PROGRESS-TEST-5"></script>
-<script src="./js/progress-sync.js?v=STEP-PROGRESS-TEST-5"></script>
-<script src="./js/library-backup.js?v=STEP-PROGRESS-TEST-5"></script>
+<script src="./js/sync-merge.js?v=STEP-PROGRESS-TEST-7"></script>
+<script src="./js/sync-storage.js?v=STEP-PROGRESS-TEST-7"></script>
+<script src="./js/progress-sync.js?v=STEP-PROGRESS-TEST-7"></script>
+<script src="./js/library-backup.js?v=STEP-PROGRESS-TEST-7"></script>
 
 </body>
 </html>

@@ -1,52 +1,58 @@
-# step-simulator-progress — TEST-5
+# step-simulator-progress — TEST-7 Worker OAuth
 
-Isolated GitHub Pages test build for local-first Google progress backup plus optional full form-library backup.
+Isolated GitHub Pages test build for local-first Step Exam Simulator progress backup.
 
-## Test URL
+## Deployment
 
-Repository name must remain `step-simulator-progress` so the deployed base path is:
+Repository: `step-simulator-progress`
+
+Production test URL:
 
 `https://dawnsommer.github.io/step-simulator-progress/`
 
-Upload the contents of this ZIP to the repository root, then enable GitHub Pages.
+Upload the contents of this ZIP to the repository root and enable GitHub Pages.
 
-## Progress backup
+## Authentication architecture
 
-- Existing simulator IndexedDB remains the immediate working database.
-- Routine answers/highlights/flags/notes/timing save locally only.
-- Drive `appDataFolder` stores one hidden progress backup per form/version, one Qbank backup, and tiny `step-simulator-progress.TEST.manifest.json`.
-- Major checkpoints and **Back Up Now** upload only changed progress entities when lineage is safe.
-- **Restore from Cloud** is explicit; cloud never silently overwrites local progress.
-- `formId + bankHash` guards restores.
-- The manually entered **3-digit score is part of that form's progress backup** and changing it marks only that form dirty.
+- Shared OAuth Worker: `https://study-tools-auth-worker.summerofdawn20.workers.dev`
+- `app_id`: `step-simulator-progress`
+- OAuth return URL: `https://dawnsommer.github.io/step-simulator-progress/`
+- The browser stores only an opaque Worker session persistently.
+- Google refresh tokens remain inside the Worker.
+- Short-lived Google Drive access tokens are held in memory only.
+- Reload/reopen uses Worker `/token` silently when the saved Worker session remains valid.
+- Drive API payloads go directly browser/iPad → Google Drive, never through Cloudflare.
+
+Production migration is centralized in `js/sync-config.js` under `CLOUD_CONFIG`.
+
+## Progress storage
+
+- Main iPad library DB: `StepSimulatorProgress_TEST_BrowserLibrary_DB`, store `files`.
+- Remembered DATA-folder handle DB: `StepSimulatorProgress_TEST_DATA_Handle_DB`, store `handles`.
+- Sync metadata DB: `StepSimulatorProgress_SYNC_META_TEST_DB`, store `kv`.
+- Library transfer temp DB: `StepSimulatorProgress_LIBRARY_TRANSFER_TEST_DB`, store `chunks`.
+- IndexedDB/local DATA progress remains authoritative and saves immediately.
+- One hidden Drive progress backup per form/version plus Qbank.
+- Small cloud manifest: `step-simulator-progress.TEST.manifest.json`.
+- 3-digit score is included in that form's progress payload.
+- Routine active-exam writes mark the form dirty but do not upload a 500KB+ file for every answer/highlight.
+- Major checkpoints, foreground/network restoration, manual Back Up Now, and app startup flush pending dirty forms.
+- Existing backup-lineage guards remain: unexpected local/cloud divergence is not silently overwritten.
+
+## Cloud serialization
+
+TEST-7 has explicit `serializeForCloud()` / `restoreFromCloud()` boundaries. The current implementation is intentionally lossless and does not discard highlight anchors or other native progress fields. JSON is minified on Drive upload, but no unverified lossy deduplication is performed without representative real progress files to prove reconstruction safety.
 
 ## Full Form Library Backup
 
-A second, manual-only system backs up the source library separately from progress:
+- Manual-only and separate from normal progress sync.
+- Backs up catalog/forms/assets and excludes `progress/**`.
+- Large file payloads transfer browser → Google Drive directly using resumable/chunked requests.
+- Pause / Resume / Cancel remains available.
+- Restore writes directly into the IndexedDB-backed iPad library.
+- On successful restore, obsolete non-progress local library files not present in the cloud manifest are pruned. Progress is preserved.
+- `catalog.json` remains last in restore order; interrupted restore does not begin by deleting the existing catalog.
 
-- `catalog.json`
-- `forms/**`
-- `assets/**` and other non-progress DATA files
-- excludes `progress/**` because progress uses the per-form backup system above
+## Build
 
-Cloud library metadata is stored in `step-simulator-progress.TEST.library.manifest.json`. Library files are hidden appDataFolder objects referenced by that manifest.
-
-Large transfers are chunked and show overall progress, current file, transferred bytes, speed, ETA, **Pause / Resume / Cancel**. Transfer state is persisted locally so an interrupted transfer can be resumed after reopening and reconnecting Google.
-
-Uploads are transactional: changed files are uploaded as new Drive objects and the new library manifest is committed only after all required files succeed. The previous committed manifest therefore remains usable if an upload is interrupted.
-
-Restores download directly from Drive into the simulator's browser library/IndexedDB. `catalog.json` is restored last so an interrupted restore does not prematurely switch the active catalog. No iPad Files-app download is required.
-
-## Isolation
-
-TEST-5 keeps separate test IndexedDB/localStorage/cache/Drive namespaces and does not touch production `exam-simulator2`.
-
-## Google OAuth
-
-The provided public Web Client ID is embedded in `js/sync-config.js`. Only `https://www.googleapis.com/auth/drive.appdata` is requested.
-
-Build: `STEP-PROGRESS-TEST-5`
-
-
-## TEST-6 Library Restore Fix
-Library restore now requests a simulator-side library replacement preparation step before writing restored library files. Progress storage remains preserved.
+`STEP-PROGRESS-TEST-7`

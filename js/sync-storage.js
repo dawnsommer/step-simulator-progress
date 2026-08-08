@@ -24,11 +24,15 @@
     if(qtxt){const q=parseMaybe(qtxt,'Qbank progress');if(q){delete q.settings;delete q.lastSelectedFormIds;qbank={key:B.qbankKey,kind:'qbank',progress:q,modifiedAt:deriveModified(q,null,null),deviceId};}}
     return {forms,qbank,deviceId,catalog:cat,runtime:b.runtime(),capturedAt:U.iso()};
   }
-  function payloadOf(entity){
+  function serializeForCloud(entity){
+    /* TEST-7 deliberately uses a lossless canonical clone. We do not remove highlight anchors or other
+       native fields without representative real progress files to prove reconstruction is safe. */
     if(!entity)return null;
-    if(entity.kind==='qbank')return {progress:entity.progress||null};
-    return {progress:entity.progress||null,suspended:entity.suspended||null,threeDigitScore:String(entity.threeDigitScore||'')};
+    if(entity.kind==='qbank')return U.clone({progress:entity.progress||null});
+    return U.clone({progress:entity.progress||null,suspended:entity.suspended||null,threeDigitScore:String(entity.threeDigitScore||'')});
   }
+  function restoreFromCloud(payload){return U.clone(payload||{});}
+  function payloadOf(entity){return serializeForCloud(entity);}
   async function hashEntity(entity){return entity?await U.sha256Text(U.stable(payloadOf(entity))):'';}
   async function localIndex(opts={}){
     const local=await readLocal(opts), index={};
@@ -37,14 +41,14 @@
     return {...local,index};
   }
   function makeFormBackup(entity,meta){
-    return {type:R.config.FORM_BACKUP_TYPE,schemaVersion:R.config.SCHEMA_VERSION,backupId:meta.backupId,revision:meta.revision,createdAt:meta.updatedAt,deviceId:meta.deviceId,build:R.config.BUILD,formId:entity.formId,bankHash:entity.bankHash,contentHash:meta.contentHash,payload:payloadOf(entity)};
+    return {type:R.config.FORM_BACKUP_TYPE,schemaVersion:R.config.SCHEMA_VERSION,appId:R.config.CLOUD.appId,backupId:meta.backupId,revision:meta.revision,createdAt:meta.updatedAt,deviceId:meta.deviceId,build:R.config.BUILD,formId:entity.formId,bankHash:entity.bankHash,contentHash:meta.contentHash,payload:payloadOf(entity)};
   }
   function makeQbankBackup(entity,meta){
-    return {type:R.config.QBANK_BACKUP_TYPE,schemaVersion:R.config.SCHEMA_VERSION,backupId:meta.backupId,revision:meta.revision,createdAt:meta.updatedAt,deviceId:meta.deviceId,build:R.config.BUILD,contentHash:meta.contentHash,payload:payloadOf(entity)};
+    return {type:R.config.QBANK_BACKUP_TYPE,schemaVersion:R.config.SCHEMA_VERSION,appId:R.config.CLOUD.appId,backupId:meta.backupId,revision:meta.revision,createdAt:meta.updatedAt,deviceId:meta.deviceId,build:R.config.BUILD,contentHash:meta.contentHash,payload:payloadOf(entity)};
   }
   function validateBackup(obj,entry){
     if(!obj||typeof obj!=='object')throw new Error('Cloud backup is invalid.');
-    if(Number(obj.schemaVersion)!==R.config.SCHEMA_VERSION)throw new Error(`Unsupported cloud backup schema ${String(obj.schemaVersion)}.`);
+    if(Number(obj.schemaVersion)!==R.config.SCHEMA_VERSION)throw new Error(`Unsupported cloud backup schema ${String(obj.schemaVersion)}.`);if(obj.appId&&obj.appId!==R.config.CLOUD.appId)throw new Error('Cloud backup belongs to a different application.');
     if(entry.kind==='form'){
       if(obj.type!==R.config.FORM_BACKUP_TYPE)throw new Error(`Cloud backup type is invalid for ${entry.formId}.`);
       if(String(obj.formId)!==String(entry.formId)||String(obj.bankHash)!==String(entry.bankHash))throw new Error(`Cloud backup identity mismatch for ${entry.formId}.`);
@@ -66,16 +70,31 @@
     return true;
   }
   async function applyBackup(entry,backup){
-    validateBackup(backup,entry);const b=bridge();window.__STEP_SYNC_APPLYING_REMOTE=true;
+    validateBackup(backup,entry);const b=bridge(),payload=restoreFromCloud(backup.payload);window.__STEP_SYNC_APPLYING_REMOTE=true;
     try{
-      if(entry.kind==='qbank'){await b.writeQbankText(JSON.stringify(backup.payload?.progress||{}));}
+      if(entry.kind==='qbank'){await b.writeQbankText(JSON.stringify(payload?.progress||{}));}
       else{
         const cat=await b.catalog(),rec=(cat.forms||[]).find(x=>String(x.id)===String(entry.formId));
         if(!rec)throw new Error(`${entry.formId} is not loaded locally. Import the matching form first.`);
         if(String(rec.bankHash||'')!==String(entry.bankHash||''))throw new Error(`Form version mismatch for ${entry.formId}; cloud backup was not applied.`);
-        if(backup.payload?.progress)await b.writeFormProgressText(entry.formId,JSON.stringify(backup.payload.progress),entry.bankHash);else await b.deleteFormProgress(entry.formId);
-        await b.writeFormSuspendedText(entry.formId,backup.payload?.suspended?JSON.stringify(backup.payload.suspended):null,entry.bankHash);
-        await b.setThreeDigitScore(entry.formId,backup.payload?.threeDigitScore||'');
+        if(payload?.progress)await b.writeFormProgressText(entry.formId,JSON.stringify(payload.progress),entry.bankHash);else await b.deleteFormProgress(entry.formId);
+        await b.writeFormSuspendedText(entry.formId,payload?.suspended?JSON.stringify(payload.suspended):null,entry.bankHash);
+        await b.setThreeDigitScore(entry.formId,payload?.threeDigitScore||'');
+      }
+      await b.refresh();
+    }finally{window.__STEP_SYNC_APPLYING_REMOTE=false;}
+  }
+  async function applyDeletion(entry){
+    const b=bridge();window.__STEP_SYNC_APPLYING_REMOTE=true;
+    try{
+      if(entry.kind==='qbank')await b.writeQbankText(null);
+      else{
+        const cat=await b.catalog(),rec=(cat.forms||[]).find(x=>String(x.id)===String(entry.formId));
+        if(!rec)throw new Error(`${entry.formId} is not loaded locally. Import/restore the matching form library first.`);
+        if(String(rec.bankHash||'')!==String(entry.bankHash||''))throw new Error(`Form version mismatch for ${entry.formId}; deletion tombstone was not applied.`);
+        await b.deleteFormProgress(entry.formId);
+        await b.writeFormSuspendedText(entry.formId,null,entry.bankHash);
+        await b.setThreeDigitScore(entry.formId,'');
       }
       await b.refresh();
     }finally{window.__STEP_SYNC_APPLYING_REMOTE=false;}
@@ -85,5 +104,5 @@
     return {forms:Object.keys(local.forms||{}).length,attempts,questions,answered,marked,stemHighlights,expHighlights,struck,notes,qbankTests:Array.isArray(local.qbank?.progress?.sessions)?local.qbank.progress.sessions.length:0};
   }
   async function validateLocal(){const local=await localIndex({flush:true});for(const [key,e] of Object.entries(local.forms)){if(!e.formId||!e.bankHash)throw new Error(`Progress entity ${key} lacks a stable form ID or bank hash.`);const meta={backupId:'TEST',revision:1,updatedAt:U.iso(),deviceId:local.deviceId,contentHash:e.contentHash};const b=makeFormBackup(e,meta);validateBackup(JSON.parse(JSON.stringify(b)),{kind:'form',formId:e.formId,bankHash:e.bankHash});}return {ok:true,stats:stats(local),loadedForms:(local.catalog.forms||[]).length,deviceId:local.deviceId,entities:Object.keys(local.index).length,estimatedBytes:new Blob([U.stable(Object.values(local.index).map(payloadOf))]).size};}
-  R.storage={readLocal,localIndex,payloadOf,hashEntity,makeFormBackup,makeQbankBackup,validateBackup,checkpoint,restoreCheckpoint,applyBackup,stats,validateLocal};
+  R.storage={readLocal,localIndex,serializeForCloud,restoreFromCloud,payloadOf,hashEntity,makeFormBackup,makeQbankBackup,validateBackup,checkpoint,restoreCheckpoint,applyBackup,applyDeletion,stats,validateLocal};
 })();

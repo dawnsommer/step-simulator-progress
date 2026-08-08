@@ -1,4 +1,4 @@
-const BUILD = 'STEP-PROGRESS-TEST-5';
+const BUILD = 'STEP-PROGRESS-TEST-7';
 const CACHE_PREFIX = 'step-simulator-progress-';
 const CACHE_NAME = `${CACHE_PREFIX}${BUILD}`;
 const INDEX_KEY = `./index.html?v=${BUILD}`;

@@ -1,17 +1,27 @@
 (function(){
   'use strict';
   const ROOT = window.StepProgressSync = window.StepProgressSync || {};
+
+  /* Production migration should require changing only this block. */
+  const CLOUD_CONFIG = Object.freeze({
+    appId: 'step-simulator-progress',
+    workerBaseUrl: 'https://study-tools-auth-worker.summerofdawn20.workers.dev',
+    returnUrl: 'https://dawnsommer.github.io/step-simulator-progress/',
+    driveFilePrefix: 'step-simulator-progress.TEST',
+    callbackParam: 'cloud-auth'
+  });
+
   const C = ROOT.config = Object.freeze({
-    APP_NAME: 'step-simulator-progress',
-    BUILD: 'STEP-PROGRESS-TEST-5',
-    GOOGLE_CLIENT_ID: '640686051076-f6feje0ff4q0g2jo6i50c9sgqo6qk1q6.apps.googleusercontent.com',
+    CLOUD: CLOUD_CONFIG,
+    APP_NAME: CLOUD_CONFIG.appId,
+    BUILD: 'STEP-PROGRESS-TEST-7',
     DRIVE_SCOPE: 'https://www.googleapis.com/auth/drive.appdata',
-    MANIFEST_FILE: 'step-simulator-progress.TEST.manifest.json',
+    MANIFEST_FILE: `${CLOUD_CONFIG.driveFilePrefix}.manifest.json`,
     MANIFEST_TYPE: 'step-simulator-progress-test-manifest',
     FORM_BACKUP_TYPE: 'step-simulator-progress-test-form-backup',
     QBANK_BACKUP_TYPE: 'step-simulator-progress-test-qbank-backup',
     SCHEMA_VERSION: 1,
-    LIBRARY_MANIFEST_FILE: 'step-simulator-progress.TEST.library.manifest.json',
+    LIBRARY_MANIFEST_FILE: `${CLOUD_CONFIG.driveFilePrefix}.library.manifest.json`,
     LIBRARY_MANIFEST_TYPE: 'step-simulator-progress-test-library-manifest',
     LIBRARY_SCHEMA_VERSION: 1,
     LIBRARY_TRANSFER_DB: 'StepSimulatorProgress_LIBRARY_TRANSFER_TEST_DB',
@@ -19,10 +29,12 @@
     LIBRARY_CHUNK_SIZE: 4 * 1024 * 1024,
     META_DB: 'StepSimulatorProgress_SYNC_META_TEST_DB',
     META_STORE: 'kv',
-    TOKEN_SESSION_KEY: 'StepSimulatorProgress_TEST_GoogleToken',
+    WORKER_SESSION_META_KEY: 'cloudWorkerSession',
+    ACCESS_TOKEN_SKEW_MS: 60 * 1000,
     CACHE_PREFIX: 'step-simulator-progress-',
     PROD_WARNING: 'TEST BUILD — isolated browser storage and isolated Google Drive appData backups.'
   });
+
   function openDb(){
     return new Promise((resolve,reject)=>{
       const req=indexedDB.open(C.META_DB,1);
