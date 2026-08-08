@@ -46,3 +46,7 @@ TEST-5 keeps separate test IndexedDB/localStorage/cache/Drive namespaces and doe
 The provided public Web Client ID is embedded in `js/sync-config.js`. Only `https://www.googleapis.com/auth/drive.appdata` is requested.
 
 Build: `STEP-PROGRESS-TEST-5`
+
+
+## TEST-6 Library Restore Fix
+Library restore now requests a simulator-side library replacement preparation step before writing restored library files. Progress storage remains preserved.
